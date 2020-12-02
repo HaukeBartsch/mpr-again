@@ -13,6 +13,7 @@ var position = [Math.floor(dims[0] / 2), Math.floor(dims[1] / 2), Math.floor(dim
 var Primary = new Image();
 var OverlayOrig = new Image(); // the original overlay before processing
 var Overlay = new Image();  // the overlay after processing
+var Atlas = new Image();
 var t1_buffer_ctx;
 var t1_canvas;
 
@@ -215,6 +216,8 @@ function resize() {
     canvas.height = jQuery('#mpr1').height();
 }
 
+var atlas_w; // the web-worker that will compute the regions of interest in atlas space
+
 //
 // cache the overlay in OverlayOrig, processed image in Overlay
 //
@@ -296,6 +299,10 @@ jQuery(document).ready(function () {
     // does not work because we hit the max of the buffer here
     Primary.src = "data/T1Axial.jpg"; // preload T1 image
     OverlayOrig.src = "data/T1Axial.jpg"; // preload the overlay - here the same, still try to use colors and fusion with threshold
+    Atlas.src = "data/T1Axial.png"; // we need 16bit to index all regions of interest
+
+    jQuery('#mpr1_message1').text("Loading data for primary... ");
+    jQuery('#mpr1_message2').text("Loading data for overlay... ");
 
     console.log("check if images are loaded...");
     Primary.onload = function () {
@@ -308,7 +315,7 @@ jQuery(document).ready(function () {
         if (overlay_loaded)
             return;
         // We need a new canvas for the processing of the overlay - this is very slow and
-        // is not done online - for now. Webworker would be nice.
+        // is not done online - for now. A web-worker would be nice.
         var canvas = document.createElement("canvas");
         canvas.width = OverlayOrig.width;
         canvas.height = OverlayOrig.height;
@@ -340,5 +347,25 @@ jQuery(document).ready(function () {
         };
         console.log("loading of overlay cache for canvas is finished");
 
+    };
+
+    Atlas.onload = function () {
+        if (typeof (atlas_w) == "undefined") {
+            atlas_w = new Worker("js/atlas_worker.js");
+        }
+        if (atlas_w) {
+            atlas_w.onmessage = function (event) {
+                if (event.data['action'] == "message")
+                    console.log("Got an event from the atlas worker: " + event.data["text"]);
+            }
+            var canvas = document.createElement("canvas");
+            canvas.width = Atlas.width;
+            canvas.height = Atlas.height;
+            var context = canvas.getContext("2d");
+            context.drawImage(Atlas, 0, 0); // why do we have to do this in the main thread?
+            var atlas_image_data = context.getImageData(0, 0, Atlas.width, Atlas.height);
+
+            atlas_w.postMessage({ "pixels": atlas_image_data });
+        }
     };
 });
