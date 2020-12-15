@@ -33,6 +33,7 @@
     <div class="MPRR">
       <canvas id="mpr1" class="primary"/draggable="false" ondragstart="return false;"></canvas>
       <canvas id="mpr1_overlay" class="overlay" draggable="false" ondragstart="return false;"></canvas>
+      <canvas id="mpr1_atlas" class="atlas" draggable="false" ondragstart="return false;"></canvas>
       <div class="message" style="bottom: 0px; right: 5px;"><span id="mpr1_message1"></span></div>
       <div class="message" style="bottom: 20px; right: 5px;"><span id="mpr1_message2"></span></div>
       <div class="message" style="bottom: 40px; right: 5px;"><span id="mpr1_message3"></span></div>
