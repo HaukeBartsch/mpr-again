@@ -44,10 +44,11 @@
 
   </div>  
 
-    <script src="js/jquery-3.2.1.min.js"></script>
-    <script src="js/popper.min.js"></script>
-    <script src="js/bootstrap.min.js"></script>
-    <script src="js/colormaps.js"></script>
-    <script src="js/all.js"></script>
+    <script src="js/jquery-3.2.1.min.js" type="text/javascript"></script>
+    <script src="js/popper.min.js" type="text/javascript"></script>
+    <script src="js/bootstrap.min.js" type="text/javascript"></script>
+    <script src="js/colormaps.js" type="text/javascript"></script>
+    <script src="js/opencv.js" type="text/javascript"></script>    
+    <script src="js/all.js" type="text/javascript"></script>
   </BODY>
 </HTML>
