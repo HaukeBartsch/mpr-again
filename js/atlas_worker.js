@@ -3,6 +3,7 @@ var regionsBySlide;
 onmessage = function (e) {
     console.log("Message received in atlas worker.");
     var image = e.data["pixels"];
+    var canvas_id = e.data['canvas_id'];
     var start = e.data["start"]; // start and end don't know about 4 bytes in RGBA
     var end = e.data["end"];
     var dims = e.data["dims"];
@@ -19,36 +20,35 @@ onmessage = function (e) {
         for (var x = 0; x < numImX; x++) {
             var s = [start[0] + x * dims[0], start[1] + y * dims[1]];
             var e = [s[0] + dims[0], s[1] + dims[1]];
-            regionsBySlide[numImY * y + x] = parseData2(image, s, e);
+            regionsBySlide[numImY * y + x] = parseData2(image, canvas_id, s, e);
             count++;
         }
     }
     postMessage({ "action": "message", "text": "done processing (in parseData of the webworker)!", "result": regionsBySlide });
 }
 
+function parseData2(image, canvas_slice_id, start, end) {
+	var cv = cv({});
 
-
-function parseData2(image, start, end) {
-
-    let src = cv.imread('mpr1_atlas');
-    let dst = cv.Mat.zeros(src.cols, src.rows, cv.CV_8UC3);
-    cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
-    cv.threshold(src, src, 120, 200, cv.THRESH_BINARY);
-    let contours = new cv.MatVector();
-    let hierarchy = new cv.Mat();
-    // You can try more different parameters
-    cv.findContours(src, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
-    // draw contours with random Scalar
-    for (let i = 0; i < contours.size(); ++i) {
-        let color = new cv.Scalar(Math.round(Math.random() * 255), Math.round(Math.random() * 255),
-            Math.round(Math.random() * 255));
-        cv.drawContours(dst, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
-    }
-    cv.imshow('canvasOutput', dst);
-    src.delete();
-    dst.delete();
-    contours.delete();
-    hierarchy.delete();
+	let src = cv.imread(canvas_slice_id);
+	let dst = cv.Mat.zeros(src.cols, src.rows, cv.CV_8UC3);
+	cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
+	cv.threshold(src, src, 120, 200, cv.THRESH_BINARY);
+	let contours = new cv.MatVector();
+	let hierarchy = new cv.Mat();
+	// You can try more different parameters
+	cv.findContours(src, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
+	// draw contours with random Scalar
+	for (let i = 0; i < contours.size(); ++i) {
+		let color = new cv.Scalar(Math.round(Math.random() * 255), Math.round(Math.random() * 255),
+			Math.round(Math.random() * 255));
+		cv.drawContours(dst, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
+	}
+	cv.imshow('canvasOutput', dst);
+	src.delete();
+	dst.delete();
+	contours.delete();
+	hierarchy.delete();
 }
 
 function parseData(image, start, end) {

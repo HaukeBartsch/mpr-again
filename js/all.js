@@ -5,9 +5,10 @@ const ctx1_overlay = jQuery('#mpr1_overlay')[0].getContext("2d");
 const ctx1_atlas = jQuery('#mpr1_atlas')[0].getContext("2d");
 
 // real height and width of cache mosaic
-var imageWidth = 11776; // 40 images
-var imageHeight = 11776; // 41 images
-var dims = [512, 512, 512];
+var imageWidth = 4096; // 11776; // 40 images
+var imageHeight = 4096; // 11776; // 41 images
+//var dims = [512, 512, 512];
+var dims = [256, 256, 256];
 var numImagesX = Math.floor(imageWidth / dims[0]);
 var numImagesY = Math.floor(imageWidth / dims[1]);
 var position = [Math.floor(dims[0] / 2), Math.floor(dims[1] / 2), Math.floor(dims[2] / 2)];
@@ -439,6 +440,7 @@ jQuery(document).ready(function () {
                 }
             }
             var canvas = document.createElement("canvas");
+            canvas.setAttribute("id", "atlas_slice_id");
             canvas.width = Atlas.width;
             canvas.height = Atlas.height;
             var context = canvas.getContext("2d");
@@ -447,7 +449,13 @@ jQuery(document).ready(function () {
             var start = [0, 0];
             var end = [Atlas.width, Atlas.height];
 
-            atlas_w.postMessage({ "pixels": atlas_image_data, "start": start, "end": end, "dims": [dims[0], dims[1]] });
+            atlas_w.postMessage({
+            	"pixels": atlas_image_data,
+            	"canvas_id": "atlas_slice_id",
+            	"start": start,
+            	"end": end,
+            	"dims": [dims[0], dims[1]]
+            });
         }
     };
 });
