@@ -19,33 +19,36 @@ onmessage = function (e) {
         for (var x = 0; x < numImX; x++) {
             var s = [start[0] + x * dims[0], start[1] + y * dims[1]];
             var e = [s[0] + dims[0], s[1] + dims[1]];
-            regionsBySlide[numImY * y + x] = parseData(image, s, e);
+            regionsBySlide[numImY * y + x] = parseData2(image, s, e);
             count++;
         }
     }
     postMessage({ "action": "message", "text": "done processing (in parseData of the webworker)!", "result": regionsBySlide });
 }
 
+
+
 function parseData2(image, start, end) {
-	let src = cv.imread('mpr1_atlas');
-	let dst = cv.Mat.zeros(src.cols, src.rows, cv.CV_8UC3);
-	cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
-	cv.threshold(src, src, 120, 200, cv.THRESH_BINARY);
-	let contours = new cv.MatVector();
-	let hierarchy = new cv.Mat();
-	// You can try more different parameters
-	cv.findContours(src, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
-	// draw contours with random Scalar
-	for (let i = 0; i < contours.size(); ++i) {
-		let color = new cv.Scalar(Math.round(Math.random() * 255), Math.round(Math.random() * 255),
-			Math.round(Math.random() * 255));
-		cv.drawContours(dst, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
-	}
-	cv.imshow('canvasOutput', dst);
-	src.delete();
-	dst.delete();
-	contours.delete();
-	hierarchy.delete();
+
+    let src = cv.imread('mpr1_atlas');
+    let dst = cv.Mat.zeros(src.cols, src.rows, cv.CV_8UC3);
+    cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
+    cv.threshold(src, src, 120, 200, cv.THRESH_BINARY);
+    let contours = new cv.MatVector();
+    let hierarchy = new cv.Mat();
+    // You can try more different parameters
+    cv.findContours(src, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
+    // draw contours with random Scalar
+    for (let i = 0; i < contours.size(); ++i) {
+        let color = new cv.Scalar(Math.round(Math.random() * 255), Math.round(Math.random() * 255),
+            Math.round(Math.random() * 255));
+        cv.drawContours(dst, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
+    }
+    cv.imshow('canvasOutput', dst);
+    src.delete();
+    dst.delete();
+    contours.delete();
+    hierarchy.delete();
 }
 
 function parseData(image, start, end) {
@@ -104,4 +107,26 @@ function parseData(image, start, end) {
     return points.filter(function (a) { return a.length > 0; });
 }
 
-postMessage({ "action": "message", "text": "done loading" });
+function waitForOpencv(callbackFn, waitTimeMs = 30000, stepTimeMs = 100) {
+    if (cv.Mat) callbackFn(true)
+
+    let timeSpentMs = 0
+    const interval = setInterval(() => {
+        const limitReached = timeSpentMs > waitTimeMs
+        if (cv.Mat || limitReached) {
+            clearInterval(interval)
+            return callbackFn(!limitReached)
+        } else {
+            timeSpentMs += stepTimeMs
+        }
+    }, stepTimeMs)
+}
+
+self.importScripts("./opencv.js");
+waitForOpencv(function (success) {
+    if (success)
+        postMessage({ "action": "message", "text": "done loading (image and opencv)" });
+    else
+        throw new Error('Error on loading OpenCV')
+});
+
