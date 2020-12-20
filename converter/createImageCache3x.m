@@ -10,10 +10,13 @@ addpath('/usr/local/fsl/etc/matlab/');
 % -applyisoxfm 0.5 -nosearch -out Landman_1399_20110819_366886505_301_WIP_T1_3D_TFE_iso0_70_SENSE_T1_3D_TFE_iso0_70_512x512x512.nii.gz 
 
 %data = read_avw('../data/Landman_1399_20110819_366886505_301_WIP_T1_3D_TFE_iso0_70_SENSE_T1_3D_TFE_iso0_70_512x512x512.nii');
-data = read_avw('../data/Landman_1399_20110819_366886505_501_WIP_T2_TRA_GRASE_SENSE_T2_TRA_GRASE_512x512x512.nii');
+%data = read_avw('../data/Landman_1399_20110819_366886505_501_WIP_T2_TRA_GRASE_SENSE_T2_TRA_GRASE_512x512x512.nii');
+data = read_avw('../data/Atlas.nii');
 % Unit voxel size? Need to do the right thing here
 data = squeeze(data(:,:,:,1));
-data = imresize3(data,[512,512,512]);
+d = [256,256,256];
+name = "Atlas";
+data = imresize3(data,d);
 % this will flip left and right, rot180 would be better
 imagesc(flipud(data(:,:,200)')); axis equal; axis off;
 
@@ -38,9 +41,9 @@ for i=1:d(3)
 end
 data2d8bit = uint8(double(data2d)/double(max(max(data2d))) * (2^8-1));
 data2d16bit = uint16(double(data2d)/double(max(max(data2d))) * (2^16-1));
-imwrite(data2d16bit, 'T2Axial.png', 'PNG', 'BitDepth', 16);
+imwrite(data2d16bit, strcat(name, 'Axial.png'), 'PNG', 'BitDepth', 16);
 %imwrite(data2d, 'T1Axial.jp2', 'jp2', 'Mode', 'lossy', 'CompressionRatio', 3);
-imwrite(data2d8bit, 'T2Axial.jpg', 'jpeg', 'Mode', 'lossy', 'BitDepth', 8, 'Quality', 75);
+imwrite(data2d8bit, strcat(name, 'Axial.jpg'), 'jpeg', 'Mode', 'lossy', 'BitDepth', 8, 'Quality', 75);
 
 h = 1; w = 1;
 for i=1:d(2)
@@ -55,8 +58,8 @@ for i=1:d(2)
 end
 data2d8bit = uint8(double(data2d)/double(max(max(data2d))) * (2^8-1));
 data2d16bit = uint16(double(data2d)/double(max(max(data2d))) * (2^16-1));
-imwrite(data2d16bit, 'T2Coronal.png', 'PNG', 'BitDepth', 16);
-imwrite(data2d8bit, 'T2Coronal.jpg', 'jpeg', 'Mode', 'lossy', 'BitDepth', 8, 'Quality', 75);
+imwrite(data2d16bit, strcat(name, 'Coronal.png'), 'PNG', 'BitDepth', 16);
+imwrite(data2d8bit, strcat(name, 'Coronal.jpg'), 'jpeg', 'Mode', 'lossy', 'BitDepth', 8, 'Quality', 75);
 
 h = 1; w = 1;
 for i=1:d(1)
@@ -71,7 +74,7 @@ for i=1:d(1)
 end
 data2d8bit = uint8(double(data2d)/double(max(max(data2d))) * (2^8-1));
 data2d16bit = uint16(double(data2d)/double(max(max(data2d))) * (2^16-1));
-imwrite(data2d16bit, 'T2Sagittal.png', 'PNG', 'BitDepth', 16);
-imwrite(data2d8bit, 'T2Sagittal.jpg', 'jpeg', 'Mode', 'lossy', 'BitDepth', 8, 'Quality', 75);
+imwrite(data2d16bit, strcat(name, 'Sagittal.png'), 'PNG', 'BitDepth', 16);
+imwrite(data2d8bit, strcat(name, 'Sagittal.jpg'), 'jpeg', 'Mode', 'lossy', 'BitDepth', 8, 'Quality', 75);
 
 % imwrite(data2d, 'output.jpg', 'JPEG', 'BitDepth', 16);
