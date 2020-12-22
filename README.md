@@ -9,3 +9,14 @@ All intensity based computations are done on the browser using OpenCV.js, Image-
 ![Example](/images/voxelViewer.gif "VoxelViewer demo")
 
 The above movie is an animated GIF. It will take a while for your browser to download the file before it starts playing back in full speed (captured on Mac Pro, 2018).
+
+## How to test
+
+This example contains the data for one brain (/data directory). You may test this step on your machine (assuming you have php installed, e.g. 'brew install php') by:
+```
+git clone https://github.com/HaukeBartsch/mpr-again.git
+cd mpr-again
+php -S localhost:8080
+```
+
+After these steps you should be able to navigate with Chrome to http://localhost:8080.
