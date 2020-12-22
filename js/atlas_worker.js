@@ -115,58 +115,51 @@ function parseData2(image, canvas_slice_id, start, end) {
 	dat.height = end[1] - start[1];
 	let src = cv.matFromArray(dat.width, dat.height, cv.CV_16UC1, dat);
 	let src2 = new cv.Mat(); // .zeros(src.cols, src.rows, cv.CV_8UC4);
-	//    cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
-	// find the list of unique colors (!=0)
 	var labelsInThisSlice = {};
 	for (var i = 0; i < dat.length; i += 4) {
 		if (dat[i] > 0) {
 			labelsInThisSlice[dat[i]] = 1;
-			//console.log("val is: " + dat[i] + " i: " + i);
 		}
 	}
 	labelsInThisSlice = Object.keys(labelsInThisSlice);
 	var contour_array = {};
 	for (var labelIdx = 0; labelIdx < labelsInThisSlice.length; labelIdx++) {
-		var label = parseInt(labelsInThisSlice[labelIdx]);
+        var label = parseInt(labelsInThisSlice[labelIdx]);
+        // for now remove some of the large label (white and gray matter)
+        if (label == 1 || label == 2 || label == 3 || label == 40 || label == 41 || label == 42) {
+        	continue;
+        }
 		const lower = cv.matFromArray(1, 1, cv.CV_16UC1, [
 			label
 		]);
 		const higher = cv.matFromArray(1, 1, cv.CV_16UC1, [
 			label
 		]);
-
-        //cv.threshold(src, src2, label, 255, cv.THRESH_BINARY);
         cv.inRange(src, lower, higher, src2);
         let contours = new cv.MatVector();
         let hierarchy = new cv.Mat();
-        // You can try more different parameters
         cv.findContours(src2, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
-        // draw contours with random Scalar
         var idx = 1;
         for (let i = 0; i < contours.size(); i++) {
         	if (i == 0)
         		contour_array[label] = [];
-        	// simplify the contour
+            // simplify the contour
         	let tmp = new cv.Mat();
         	let cnt = contours.get(i);
-        	// You can try more different parameters
         	cv.approxPolyDP(cnt, tmp, 0.1, true);
 
         	var data = Array.from(tmp.data).chunk(4).map(function(a) {
         		return a[0];
         	}).chunk(2);
         	contour_array[label].push(data);
-        	// cv.drawContours(dst, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
         }
         contours.delete();
         hierarchy.delete();
     }
-    //cv.imshow('canvasOutput', dst);
     src.delete();
     src2.delete();
-    //dst.delete();
     return contour_array;
-    }
+}
 
 function parseData(image, start, end) {
     // we should start processing the image here

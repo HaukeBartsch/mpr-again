@@ -34,6 +34,8 @@ function draw(timestamp) {
     requestAnimationFrame(draw);
 }
 
+var useColorByLabel = false;
+
 var last_position_atlas; // cache this to make animation requests faster
 var requireNewDraw_atlas = false;
 function updateAtlasOverlays() {
@@ -81,9 +83,13 @@ function updateAtlasOverlays() {
             // draw these points
             // the slice is [pos] and inside we have a key which is the color
             var label = Object.keys(atlas_outlines[pos]);
-            console.log("label: " + label);
+            //console.log("label: " + label);
             for (var lab = 0; lab < label.length; lab++) {
-            	var dd = atlas_outlines[pos][label[lab]];
+                var color = '#fff';
+                if (typeof(atlas_colors[label[lab]]) !== 'undefined' && useColorByLabel) {
+                	color = "rgb(" + atlas_colors[label[lab]][1] + "," + atlas_colors[label[lab]][2] + "," + atlas_colors[label[lab]][3] + ")";
+                }
+                    var dd = atlas_outlines[pos][label[lab]];
             	dd.forEach(function(d) {
             				//ctx1_atlas.fillStyle = "#999911";
             				var p = "";
@@ -101,15 +107,16 @@ function updateAtlasOverlays() {
                     }
                     var path = draw.path(p + "Z");
                     path.fill('none').stroke({
-                    	width: 4,
-                    	color: '#000'
+                        width: 3,
+                        color: '#000'
                     });
                     var path2 = draw.path(p + "Z");
                     path2.fill('none').stroke({
-                    width: 1,
-                    color: '#fff'
+                        width: 1,
+                        color: color
                     });
-                    });
+                    //path2.text("HA");
+                });
             }
         }
         last_position_atlas = [position[0], position[1], position[2]];
@@ -461,8 +468,8 @@ jQuery(document).ready(function () {
                 			return AtlasImage16bit;
                     }
                     AtlasImage16bit = loadAtlas().catch(console.error);
-                    }
-                    if (event.data['action'] == "OpenCVReady") {
+                }
+                /*if (event.data['action'] == "OpenCVReady") {
                     var canvas = document.createElement("canvas");
                     canvas.setAttribute("id", "atlas_slice_id");
                     canvas.width = Atlas.width;
@@ -479,13 +486,35 @@ jQuery(document).ready(function () {
                         "start": start,
                         "end": end,
                         "dims": [dims[0], dims[1]]
-                    });*/
-                    }
-                    if (typeof(event.data["result"]) !== "undefined") {
-                    	atlas_outlines = event.data["result"];
-                    }
-                    // end of onmessage
-                    };
+                    });
+                    }*/
+                if (typeof(event.data["result"]) !== "undefined") {
+                  	atlas_outlines = event.data["result"];
+                } // end of onmessage
+                };
         }
     };
+    jQuery(document).on('keydown', function(e) {
+    			if (e.which == 49) {
+    				useColorByLabel = !useColorByLabel;
+    			}
+    			if (e.which == 50) { // 2
+    				if (jQuery('#mpr1_overlay').is(":visible"))
+    					jQuery('#mpr1_overlay').hide();
+    				else
+    					jQuery('#mpr1_overlay').show();
+    			}
+    			if (e.which == 51) {
+    				if (jQuery('#mpr1_atlas2').is(":visible"))
+    					jQuery('#mpr1_atlas2').hide();
+    				else
+    					jQuery('#mpr1_atlas2').show();
+    			}
+    			if (e.which == 52) {
+    				if (jQuery('#mpr1').is(":visible"))
+    					jQuery('#mpr1').hide();
+    				else
+    					jQuery('#mpr1').show();
+        }
+        });
 });

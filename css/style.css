@@ -58,6 +58,7 @@ canvas {
     position: absolute;
     top: 0px;
     left: 50%;
+    display: none;
 }
 .crosshair-horizontal {
     border-bottom: 2px solid yellow;
@@ -67,6 +68,7 @@ canvas {
     position: absolute;
     top: 50%;
     left: 0px;
+    display: none;
 }
 
 .primary {

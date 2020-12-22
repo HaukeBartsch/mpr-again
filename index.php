@@ -50,6 +50,7 @@
     <script src="js/bootstrap.min.js" type="text/javascript"></script>
     <script src="js/svg.min.js" type="text/javascript"></script>
     <script src="js/image.min.js"></script>
+    <script src="js/freesurfer_labels.js"></script>
     <script src="js/colormaps.js" type="text/javascript"></script>
   <!--   <script src="js/opencv.js" type="text/javascript"></script> -->    
     <script src="js/all.js" type="text/javascript"></script>
