@@ -1,7 +1,72 @@
 var regionsBySlide;
 
+// if we want to load OpenCV.js in this worker we need to wait for Module to fill up, after the promise...
+var Module = {
+	onRuntimeInitialized() {
+		// this is our application:
+		if (typeof cv === "object")
+			console.log(cv.getBuildInformation())
+	}
+};
+self.importScripts("/js/opencv.js");
+if (typeof cv === "function") {
+	const promise = cv().then(function() {
+		console.log("cv loaded");
+		cv = Module; // this looks broken, but I don't know how to fulfill the promise any other way
+	}, function() {
+		console.log("Loading of OpenCV failed...");
+	});
+}
+
+waitForOpencv(function(success) {
+	if (success) {
+		postMessage({
+			"action": "OpenCVReady",
+			"text": "done loading (opencv)"
+		});
+	} else {
+		console.log("perceived error loading opencv");
+		//throw new Error('Error on loading OpenCV');
+	}
+});
+
 onmessage = function (e) {
     console.log("Message received in atlas worker.");
+    if (typeof(e.data["pixels16bit"]) !== "undefined") {
+    	// we got 16bit data for processing here
+    	// we can loop through all the images between start end end
+    	var image = e.data["pixels16bit"];
+    	var start = e.data["start"]; // start and end don't know about 4 bytes in RGBA
+    	var end = e.data["end"];
+    	var dims = e.data["dims"];
+    	if (typeof end[0] == 'undefined' || typeof dims[0] == 'undefined')
+    		console.log("found bla bla");
+
+    	var numImX = Math.floor(end[0] / dims[0]);
+    	var numImY = Math.floor(end[1] / dims[1]);
+    	var count = 0;
+    	regionsBySlide = {};
+    	for (var y = 0; y < numImY; y++) {
+    		postMessage({
+    			"action": "message",
+    			"text": "num " + (y + 1) + " of " + numImY
+    		});
+    		for (var x = 0; x < numImX; x++) {
+    			var s = [start[0] + x * dims[0], start[1] + y * dims[1]];
+    			var e = [s[0] + dims[0], s[1] + dims[1]];
+    			regionsBySlide[numImX * x + y] = parseData2(image, canvas_id, s, e);
+    			count++;
+    		}
+    	}
+    	postMessage({
+    		"action": "message",
+    		"text": "done processing (in parseData of the webworker)!",
+    		"result": regionsBySlide
+    	});
+
+    	return;
+    }
+
     var image = e.data["pixels"];
     var canvas_id = e.data['canvas_id'];
     var start = e.data["start"]; // start and end don't know about 4 bytes in RGBA
@@ -20,36 +85,88 @@ onmessage = function (e) {
         for (var x = 0; x < numImX; x++) {
             var s = [start[0] + x * dims[0], start[1] + y * dims[1]];
             var e = [s[0] + dims[0], s[1] + dims[1]];
-            regionsBySlide[numImY * y + x] = parseData2(image, canvas_id, s, e);
+            regionsBySlide[numImX * x + y] = parseData2(image, canvas_id, s, e);
             count++;
         }
     }
     postMessage({ "action": "message", "text": "done processing (in parseData of the webworker)!", "result": regionsBySlide });
 }
 
-function parseData2(image, canvas_slice_id, start, end) {
-	var cv = cv({});
-
-	let src = cv.imread(canvas_slice_id);
-	let dst = cv.Mat.zeros(src.cols, src.rows, cv.CV_8UC3);
-	cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
-	cv.threshold(src, src, 120, 200, cv.THRESH_BINARY);
-	let contours = new cv.MatVector();
-	let hierarchy = new cv.Mat();
-	// You can try more different parameters
-	cv.findContours(src, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
-	// draw contours with random Scalar
-	for (let i = 0; i < contours.size(); ++i) {
-		let color = new cv.Scalar(Math.round(Math.random() * 255), Math.round(Math.random() * 255),
-			Math.round(Math.random() * 255));
-		cv.drawContours(dst, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
+Object.defineProperty(Array.prototype, 'chunk', {
+	value: function(chunkSize) {
+		var R = [];
+		for (var i = 0; i < this.length; i += chunkSize)
+			R.push(this.slice(i, i + chunkSize));
+		return R;
 	}
-	cv.imshow('canvasOutput', dst);
-	src.delete();
-	dst.delete();
-	contours.delete();
-	hierarchy.delete();
-}
+});
+
+function parseData2(image, canvas_slice_id, start, end) {
+	let dat = [];
+	var w = image.width;
+	var h = image.height;
+	var channel = 1;
+	for (var y = start[1]; y < end[1]; y++) { // for each of the rows get the slice of the data
+		var idx1 = (start[0] * channel) + (y * (w * channel));
+		var idx2 = idx1 + (channel * (end[0] - start[0]));
+		dat = dat.concat(Array.from(image.data.slice(idx1, idx2)));
+	}
+	dat.width = end[0] - start[0];
+	dat.height = end[1] - start[1];
+	let src = cv.matFromArray(dat.width, dat.height, cv.CV_16UC1, dat);
+	let src2 = new cv.Mat(); // .zeros(src.cols, src.rows, cv.CV_8UC4);
+	//    cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
+	// find the list of unique colors (!=0)
+	var labelsInThisSlice = {};
+	for (var i = 0; i < dat.length; i += 4) {
+		if (dat[i] > 0) {
+			labelsInThisSlice[dat[i]] = 1;
+			//console.log("val is: " + dat[i] + " i: " + i);
+		}
+	}
+	labelsInThisSlice = Object.keys(labelsInThisSlice);
+	var contour_array = {};
+	for (var labelIdx = 0; labelIdx < labelsInThisSlice.length; labelIdx++) {
+		var label = parseInt(labelsInThisSlice[labelIdx]);
+		const lower = cv.matFromArray(1, 1, cv.CV_16UC1, [
+			label
+		]);
+		const higher = cv.matFromArray(1, 1, cv.CV_16UC1, [
+			label
+		]);
+
+        //cv.threshold(src, src2, label, 255, cv.THRESH_BINARY);
+        cv.inRange(src, lower, higher, src2);
+        let contours = new cv.MatVector();
+        let hierarchy = new cv.Mat();
+        // You can try more different parameters
+        cv.findContours(src2, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
+        // draw contours with random Scalar
+        var idx = 1;
+        for (let i = 0; i < contours.size(); i++) {
+        	if (i == 0)
+        		contour_array[label] = [];
+        	// simplify the contour
+        	let tmp = new cv.Mat();
+        	let cnt = contours.get(i);
+        	// You can try more different parameters
+        	cv.approxPolyDP(cnt, tmp, 0.1, true);
+
+        	var data = Array.from(tmp.data).chunk(4).map(function(a) {
+        		return a[0];
+        	}).chunk(2);
+        	contour_array[label].push(data);
+        	// cv.drawContours(dst, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
+        }
+        contours.delete();
+        hierarchy.delete();
+    }
+    //cv.imshow('canvasOutput', dst);
+    src.delete();
+    src2.delete();
+    //dst.delete();
+    return contour_array;
+    }
 
 function parseData(image, start, end) {
     // we should start processing the image here
@@ -107,7 +224,7 @@ function parseData(image, start, end) {
     return points.filter(function (a) { return a.length > 0; });
 }
 
-function waitForOpencv(callbackFn, waitTimeMs = 30000, stepTimeMs = 100) {
+function waitForOpencv(callbackFn, waitTimeMs = 60000, stepTimeMs = 100) {
     if (cv.Mat) callbackFn(true)
 
     let timeSpentMs = 0
@@ -121,12 +238,3 @@ function waitForOpencv(callbackFn, waitTimeMs = 30000, stepTimeMs = 100) {
         }
     }, stepTimeMs)
 }
-
-self.importScripts("./opencv.js");
-waitForOpencv(function (success) {
-    if (success)
-        postMessage({ "action": "message", "text": "done loading (image and opencv)" });
-    else
-        throw new Error('Error on loading OpenCV')
-});
-

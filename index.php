@@ -34,6 +34,7 @@
       <canvas id="mpr1" class="primary"/draggable="false" ondragstart="return false;"></canvas>
       <canvas id="mpr1_overlay" class="overlay" draggable="false" ondragstart="return false;"></canvas>
       <canvas id="mpr1_atlas" class="atlas" draggable="false" ondragstart="return false;"></canvas>
+      <div id="mpr1_atlas2" class="atlas2" draggable="false" ondragstart="return false;"></div>
       <div class="message" style="bottom: 0px; right: 5px;"><span id="mpr1_message1"></span></div>
       <div class="message" style="bottom: 20px; right: 5px;"><span id="mpr1_message2"></span></div>
       <div class="message" style="bottom: 40px; right: 5px;"><span id="mpr1_message3"></span></div>
@@ -47,8 +48,10 @@
     <script src="js/jquery-3.2.1.min.js" type="text/javascript"></script>
     <script src="js/popper.min.js" type="text/javascript"></script>
     <script src="js/bootstrap.min.js" type="text/javascript"></script>
+    <script src="js/svg.min.js" type="text/javascript"></script>
+    <script src="js/image.min.js"></script>
     <script src="js/colormaps.js" type="text/javascript"></script>
-    <script src="js/opencv.js" type="text/javascript"></script>    
+  <!--   <script src="js/opencv.js" type="text/javascript"></script> -->    
     <script src="js/all.js" type="text/javascript"></script>
   </BODY>
 </HTML>
