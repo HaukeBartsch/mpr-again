@@ -12,11 +12,11 @@ The above movie is an animated GIF. It will take a while for your browser to dow
 
 ## How to test
 
-This example contains the data for one brain (/data directory). You may test this step on your machine (assuming you have php and git installed, e.g. 'brew install php; brew install git') by:
+The data folder contains the data for one brain (/data directory). You may test the viewer using those datasets (assuming you have php and git installed, e.g. 'brew install php; brew install git') by:
 ```
 git clone https://github.com/HaukeBartsch/mpr-again.git
 cd mpr-again
 php -S localhost:8080
 ```
 
-After these steps you should be able to navigate with Chrome to http://localhost:8080 and see the example page. Navigation in axial is done using left-mouse hold and moving the mouse up and down.
+Navigate with Chrome to http://localhost:8080 to see the example. Navigation in axial orientation is done using left-mouse, hold and move the mouse up and down.
