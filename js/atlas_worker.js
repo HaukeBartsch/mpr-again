@@ -17,6 +17,7 @@ if (typeof cv === "function") {
 		console.log("Loading of OpenCV failed...");
 	});
 }
+self.importScripts("/js/labelPolygon.js");
 
 waitForOpencv(function(success) {
 	if (success) {
@@ -153,7 +154,7 @@ function parseData2(image, canvas_slice_id, start, end, atlas_colors) {
             // simplify the contour
         	let tmp = new cv.Mat();
         	let cnt = contours.get(i);
-            cv.approxPolyDP(cnt, tmp, 0.1, true);
+            cv.approxPolyDP(cnt, tmp, 0.01, true);
             let moments = cv.moments(cnt, false);
             let centroid_x = moments.m10 / moments.m00;
             let centroid_y = moments.m01 / moments.m00;
@@ -163,8 +164,16 @@ function parseData2(image, canvas_slice_id, start, end, atlas_colors) {
         		return a[0];
         	}).chunk(2);
             contour_array[label].push(data);
+            // We could do better here for the placement of labels.
+            // Best would be to find the largest inscribing circle for the
+            // polygon and to place the label at that location. This
+            // can be done brute force using a pointPolygonTest on all
+            // grid locations inside the contour.
+            var center = polylabel([data], 0.1);
+
             label_array[label].push({
-            	centroid: [centroid_x, centroid_y],
+                centroid: [center[0], center[1]],
+                	inclosing_radius: center.distance,
             	area: area,
             	perimeter: perimeter,
             	label: label,
