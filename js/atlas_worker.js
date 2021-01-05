@@ -154,7 +154,7 @@ function parseData2(image, canvas_slice_id, start, end, atlas_colors) {
             // simplify the contour
         	let tmp = new cv.Mat();
         	let cnt = contours.get(i);
-            cv.approxPolyDP(cnt, tmp, 0.01, true);
+            cv.approxPolyDP(cnt, tmp, 0.1, true);
             let moments = cv.moments(cnt, false);
             let centroid_x = moments.m10 / moments.m00;
             let centroid_y = moments.m01 / moments.m00;
