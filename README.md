@@ -20,3 +20,5 @@ php -S localhost:8080
 ```
 
 Navigate with Chrome to http://localhost:8080 to see the example. Navigation in axial orientation is done using left-mouse, hold and move the mouse up and down.
+
+![Example](/images/label_example.jpg "VoxelViewer demo")

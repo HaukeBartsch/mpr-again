@@ -144,6 +144,8 @@ function parseData2(image, canvas_slice_id, start, end, atlas_colors) {
         cv.inRange(src, lower, higher, src2);
         let contours = new cv.MatVector();
         let hierarchy = new cv.Mat();
+        // TODO: this retrieves the contours in a 2 level hierarchy. This means that we have information
+        // about holes in contour - but our code below does not use that information!
         cv.findContours(src2, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
         var idx = 1;
         for (let i = 0; i < contours.size(); i++) {
