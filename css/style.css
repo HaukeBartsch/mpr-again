@@ -96,3 +96,7 @@ canvas {
 	top: 0px;
 	left: 0px;
 }
+
+.text_label {
+	pointer-events: all;
+}

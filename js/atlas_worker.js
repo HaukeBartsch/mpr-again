@@ -38,7 +38,8 @@ onmessage = function (e) {
     	var image = e.data["pixels16bit"];
     	var start = e.data["start"]; // start and end don't know about 4 bytes in RGBA
     	var end = e.data["end"];
-    	var dims = e.data["dims"];
+        var dims = e.data["dims"];
+        var atlas_colors = e.data["atlas_colors"];
     	if (typeof end[0] == 'undefined' || typeof dims[0] == 'undefined')
     		console.log("found bla bla");
 
@@ -54,10 +55,13 @@ onmessage = function (e) {
     		for (var x = 0; x < numImX; x++) {
     			var s = [start[0] + x * dims[0], start[1] + y * dims[1]];
     			var e = [s[0] + dims[0], s[1] + dims[1]];
-    			regionsBySlide[numImX * x + y] = parseData2(image, canvas_id, s, e);
+                regionsBySlide[numImX * x + y] = parseData2(image, canvas_id, s, e, atlas_colors);
     			count++;
     		}
-    	}
+        }
+        // We should also have a legend here, by slice list all the rois with a 
+        // center point at which to show the label - and the label.
+
     	postMessage({
     		"action": "message",
     		"text": "done processing (in parseData of the webworker)!",
@@ -101,7 +105,7 @@ Object.defineProperty(Array.prototype, 'chunk', {
 	}
 });
 
-function parseData2(image, canvas_slice_id, start, end) {
+function parseData2(image, canvas_slice_id, start, end, atlas_colors) {
 	let dat = [];
 	var w = image.width;
 	var h = image.height;
@@ -122,7 +126,8 @@ function parseData2(image, canvas_slice_id, start, end) {
 		}
 	}
 	labelsInThisSlice = Object.keys(labelsInThisSlice);
-	var contour_array = {};
+    var contour_array = {};
+    var label_array = {}; // store the location of each label for a contour
 	for (var labelIdx = 0; labelIdx < labelsInThisSlice.length; labelIdx++) {
         var label = parseInt(labelsInThisSlice[labelIdx]);
         // for now remove some of the large label (white and gray matter)
@@ -141,24 +146,40 @@ function parseData2(image, canvas_slice_id, start, end) {
         cv.findContours(src2, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
         var idx = 1;
         for (let i = 0; i < contours.size(); i++) {
-        	if (i == 0)
-        		contour_array[label] = [];
+            if (i == 0) {
+                contour_array[label] = [];
+                label_array[label] = [];
+                }
             // simplify the contour
         	let tmp = new cv.Mat();
         	let cnt = contours.get(i);
-        	cv.approxPolyDP(cnt, tmp, 0.1, true);
-
+            cv.approxPolyDP(cnt, tmp, 0.1, true);
+            let moments = cv.moments(cnt, false);
+            let centroid_x = moments.m10 / moments.m00;
+            let centroid_y = moments.m01 / moments.m00;
+            let area = cv.contourArea(cnt);
+            let perimeter = cv.arcLength(cnt, true);
         	var data = Array.from(tmp.data).chunk(4).map(function(a) {
         		return a[0];
         	}).chunk(2);
-        	contour_array[label].push(data);
+            contour_array[label].push(data);
+            label_array[label].push({
+            	centroid: [centroid_x, centroid_y],
+            	area: area,
+            	perimeter: perimeter,
+            	label: label,
+            	name: atlas_colors[label][0]
+            });
         }
         contours.delete();
         hierarchy.delete();
     }
     src.delete();
     src2.delete();
-    return contour_array;
+    return {
+    	contour_array: contour_array,
+    	label_array: label_array
+    };
 }
 
 function parseData(image, start, end) {

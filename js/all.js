@@ -86,16 +86,27 @@ function updateAtlasOverlays() {
             //console.log("label: " + label);
             for (var lab = 0; lab < label.length; lab++) {
                 var color = '#fff';
+                var label_name = "";
+                var label_short = "";
+                var label_position = [];
+                var label_area = 0.0;
+
                 if (typeof(atlas_colors[label[lab]]) !== 'undefined' && useColorByLabel) {
                 	color = "rgb(" + atlas_colors[label[lab]][1] + "," + atlas_colors[label[lab]][2] + "," + atlas_colors[label[lab]][3] + ")";
                 }
-                    var dd = atlas_outlines[pos][label[lab]];
-            	dd.forEach(function(d) {
-            				//ctx1_atlas.fillStyle = "#999911";
-            				var p = "";
-            				for (var point = 0; point < d.length; point++) {
-            					var x = d[point][0] - offsetX;
-            					var y = d[point][1] - offsetY;
+                var dd = atlas_outlines[pos][label[lab]];
+            	dd.forEach(function(d, idx) {
+            				if (typeof(atlas_outlines_labels[pos][label[lab]]) !== 'undefined') {
+            					label_name = atlas_outlines_labels[pos][label[lab]][idx].name;
+            					label_short = label_name.replace(/[^A-Z0-9]/g, '');
+            					label_position = atlas_outlines_labels[pos][label[lab]][idx].centroid;
+            					label_area = atlas_outlines_labels[pos][label[lab]][idx].area;
+            				}
+                    //ctx1_atlas.fillStyle = "#999911";
+            		var p = "";
+            		for (var point = 0; point < d.length; point++) {
+            			var x = d[point][0] - offsetX;
+            			var y = d[point][1] - offsetY;
                         x = offset[0] + scale[0] * (x / dims[0] * width);
                         y = offset[1] + scale[1] * (y / dims[1] * height);
                         if (p == "") {
@@ -115,6 +126,42 @@ function updateAtlasOverlays() {
                         width: 1,
                         color: color
                     });
+                    if (label_short != "" && label_area > 20) {
+                    	var x = label_position[0] - offsetX;
+                    	var y = label_position[1] - offsetY;
+                    	x = offset[0] + scale[0] * (x / dims[0] * width);
+                    	y = offset[1] + scale[1] * (y / dims[1] * height);
+
+                    	var text = draw.plain(label_short).font({
+                    		family: 'Helvetica',
+                    		size: 9,
+                    		anchor: "middle",
+                    		fill: "#000",
+                    		weight: 900
+                    	}).attr({
+                    		x: x,
+                    		y: y
+                    	});
+
+
+                    	var text = draw.plain(label_short).font({
+                    		family: 'Helvetica',
+                    		size: 9,
+                    		anchor: "middle",
+                    		fill: "#ffffff",
+                    		weight: 400
+                    	}).attr({
+                    		x: x,
+                    		y: y,
+                    		title: label_name,
+                    		class: "text_label"
+                    	});
+                    	(function(label_name) {
+                    		text.on("mouseover", function() {
+                    			jQuery('#mpr1_message3').text(label_name);
+                    		});
+                    	})(label_name);
+                    }
                     //path2.text("HA");
                 });
             }
@@ -451,7 +498,8 @@ jQuery(document).ready(function () {
         if (atlas_w) {
             atlas_w.onmessage = function (event) {
                 if (event.data['action'] == "message") {
-                    console.log("Got an event from the atlas worker: " + event.data["text"]);
+                    if (typeof(event.data["text"]) != "undefined")
+                       console.log("Got an event from the atlas worker: " + event.data["text"]);
                 }
                 // read a 16bit version of the data (single channel)
                 if (event.data['action'] == "OpenCVReady") {
@@ -460,7 +508,8 @@ jQuery(document).ready(function () {
                 			var start = [0, 0];
                 			var end = [Atlas.width, Atlas.height];
                 			atlas_w.postMessage({
-                				"pixels16bit": AtlasImage16bit,
+                                "pixels16bit": AtlasImage16bit,
+                                "atlas_colors": atlas_colors,
                 				"start": start,
                 				"end": end,
                 				"dims": [dims[0], dims[1]]
@@ -489,7 +538,14 @@ jQuery(document).ready(function () {
                     });
                     }*/
                 if (typeof(event.data["result"]) !== "undefined") {
-                  	atlas_outlines = event.data["result"];
+                	atlas_outlines = [];
+                	atlas_outlines_labels = [];
+                	var keys = Object.keys(event.data["result"]);
+                	for (var i = 0; i < keys.length; i++) {
+                		atlas_outlines[keys[i]] = event.data["result"][keys[i]]["contour_array"];
+                		atlas_outlines_labels[keys[i]] = event.data["result"][keys[i]]["label_array"];
+                	}
+                	console.log("received the atlas outlines and the atlas labels...");
                 } // end of onmessage
                 };
         }
