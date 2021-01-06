@@ -126,7 +126,7 @@ function updateAtlasOverlays() {
                         width: 1,
                         color: color
                     });
-                    if (label_short != "" && label_area > 20) {
+                    if (label_short != "" && label_area > 10) {
                     	var x = label_position[0] - offsetX;
                     	var y = label_position[1] - offsetY;
                     	x = offset[0] + scale[0] * (x / dims[0] * width);
@@ -551,26 +551,58 @@ jQuery(document).ready(function () {
         }
     };
     jQuery(document).on('keydown', function(e) {
-    			if (e.which == 49) {
-    				useColorByLabel = !useColorByLabel;
-    			}
-    			if (e.which == 50) { // 2
-    				if (jQuery('#mpr1_overlay').is(":visible"))
-    					jQuery('#mpr1_overlay').hide();
-    				else
-    					jQuery('#mpr1_overlay').show();
-    			}
-    			if (e.which == 51) {
-    				if (jQuery('#mpr1_atlas2').is(":visible"))
-    					jQuery('#mpr1_atlas2').hide();
-    				else
-    					jQuery('#mpr1_atlas2').show();
-    			}
-    			if (e.which == 52) {
-    				if (jQuery('#mpr1').is(":visible"))
-    					jQuery('#mpr1').hide();
-    				else
-    					jQuery('#mpr1').show();
+        if (e.which == 49) {
+            useColorByLabel = !useColorByLabel;
         }
-        });
+        if (e.which == 50) { // 2
+            if (jQuery('#mpr1_overlay').is(":visible"))
+            jQuery('#mpr1_overlay').hide();
+            else
+            jQuery('#mpr1_overlay').show();
+        }
+        if (e.which == 51) {
+            if (jQuery('#mpr1_atlas2').is(":visible"))
+            jQuery('#mpr1_atlas2').hide();
+            else
+            jQuery('#mpr1_atlas2').show();
+        }
+        if (e.which == 52) {
+            if (jQuery('#mpr1').is(":visible"))
+            jQuery('#mpr1').hide();
+            else
+            jQuery('#mpr1').show();
+        }
+        if (e.which == 84) { // 't'
+        	// do some timing of the rendering, we want to draw as fast as we can
+        	position[0] = 0;
+        	// force a redraw of all
+        	requireNewDraw_atlas = true;
+        	requireNewDraw_overlay = true;
+        	requireNewDraw = true;
+        	var start = new Date().getTime();
+
+        	function tim() {
+        		var stopTiming = false;
+        		if (!requireNewDraw && !requireNewDraw_overlay && !requireNewDraw_atlas) {
+        			if (position[0] >= dims[0]) {
+        				var end = new Date().getTime();
+        				var t = (end - start);
+        				var tt = "Rendering Time: " + t + "ms for " +
+        					dims[0] + " slices [" + ((dims[0] / t) * 1000.0).toFixed(0) + " slices/sec].";
+        				setTimeout(function() {
+        					jQuery('#mpr1_message3').text(tt);
+        				}, 100);
+        				console.log(tt);
+        				stopTiming = true;
+        			}
+        			if (position[0] <= dims[0]) {
+        				position[0]++;
+        			}
+        		}
+        		if (!stopTiming)
+        			setTimeout(tim, 1);
+        	}
+        	setTimeout(tim, 1);
+        }
+    }); 
 });
