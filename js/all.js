@@ -119,7 +119,7 @@ function updateAtlasOverlays() {
                     var path = draw.path(p + "Z");
                     path.fill('none').stroke({
                         width: 3,
-                        color: '#000'
+                        color: 'rgba(0,0,0,0.8)'
                     });
                     var path2 = draw.path(p + "Z");
                     path2.fill('none').stroke({

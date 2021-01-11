@@ -149,10 +149,12 @@ function parseData2(image, canvas_slice_id, start, end, atlas_colors) {
         cv.findContours(src2, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
         var idx = 1;
         for (let i = 0; i < contours.size(); i++) {
+            // I assume that in some cases a contour has more than one array,
+            // those are rings (holes). We should keep them in the structure for polylabel.
             if (i == 0) {
                 contour_array[label] = [];
                 label_array[label] = [];
-                }
+            }
             // simplify the contour
         	let tmp = new cv.Mat();
         	let cnt = contours.get(i);
