@@ -1,5 +1,44 @@
 const mouse = { x: 0, y: 0, button: false, wheel: 0, lastX: 0, lastY: 0, drag: false, dragx: 0, dragy: 0 };
 
+// We can enable themes, ways to adjust the display for specific
+// purposes. Here is a print theme that provides larger line width.
+var themes = {
+	"normal": {
+		"primary": {
+			"show": true
+		},
+		"overlay": {
+			"show": true
+		},
+		"atlas": {
+			"show": true,
+			"label": true,
+			"colorByLabel": false,
+			"outlines": true,
+			"outline_width": 1,
+			"outline_color": "#fff"
+		}
+	}, // no change
+	"print": {
+		"primary": {
+			"show": false
+		},
+		"overlay": {
+			"show": true
+		},
+		"atlas": {
+			"show": true,
+			"label": false,
+			"outlines": true,
+			"outline_width": 5,
+			"outline_color": "#fff",
+			"colorByLabel": false
+		}
+	}
+};
+// current theme is the normal theme
+var theme = themes.normal;
+
 const ctx1 = jQuery('#mpr1')[0].getContext("2d");
 const ctx1_overlay = jQuery('#mpr1_overlay')[0].getContext("2d");
 const ctx1_atlas = jQuery('#mpr1_atlas')[0].getContext("2d");
@@ -24,23 +63,24 @@ var primary_loaded = false;
 var overlay_loaded = false;
 var previous_timestamp;
 function draw(timestamp) {
-    if (primary_loaded)
-    updateMPRPrimary();
-    if (overlay_loaded)
-    updateMPROverlay();
-    if (atlas_outlines)
-    updateAtlasOverlays();
+    if (primary_loaded && theme.primary.show)
+        updateMPRPrimary();
+    if (overlay_loaded && theme.overlay.show)
+        updateMPROverlay();
+    if (atlas_outlines && theme.atlas.show)
+        updateAtlasOverlays();
     
     requestAnimationFrame(draw);
 }
 
-var useColorByLabel = false;
+// replaced with theme
+// var useColorByLabel = false;
 
 var last_position_atlas; // cache this to make animation requests faster
 var requireNewDraw_atlas = false;
 function updateAtlasOverlays() {
     if (typeof atlas_outlines == 'undefined')
-    return;
+        return;
     
     if (typeof last_position_atlas == 'undefined' || (last_position_atlas[0] != position[0] || last_position_atlas[1] != position[1] || last_position_atlas[2] != position[2])) {
         requireNewDraw_atlas = true;
@@ -49,7 +89,7 @@ function updateAtlasOverlays() {
     // just draw them as colored dots and we don't need to define any polygons
     var pos = position[0]; // use this slice
     if (typeof(atlas_outlines[pos]) === 'undefined' || atlas_outlines[pos].length < 1)
-    return;
+        return;
     
     if (requireNewDraw_atlas) {
         
@@ -91,8 +131,10 @@ function updateAtlasOverlays() {
                 var label_position = [];
                 var label_area = 0.0;
 
-                if (typeof(atlas_colors[label[lab]]) !== 'undefined' && useColorByLabel) {
+                if (typeof(atlas_colors[label[lab]]) !== 'undefined' && theme.atlas.useColorByLabel) {
                 	color = "rgb(" + atlas_colors[label[lab]][1] + "," + atlas_colors[label[lab]][2] + "," + atlas_colors[label[lab]][3] + ")";
+                } else {
+                	color = theme.atlas.outline_color;
                 }
                 var dd = atlas_outlines[pos][label[lab]];
             	dd.forEach(function(d, idx) {
@@ -116,17 +158,19 @@ function updateAtlasOverlays() {
                         }
                         //ctx1_atlas.fillRect(x, y, .5, .5);
                     }
-                    var path = draw.path(p + "Z");
-                    path.fill('none').stroke({
-                        width: 3,
-                        color: 'rgba(0,0,0,0.8)'
-                    });
-                    var path2 = draw.path(p + "Z");
-                    path2.fill('none').stroke({
-                        width: 1,
-                        color: color
-                    });
-                    if (label_short != "" && label_area > 10) {
+                    if (theme.atlas.outlines) {
+                        var path = draw.path(p + "Z");
+                        path.fill('none').stroke({
+                            width: theme.atlas.outline_width + 2,
+                            	color: 'rgba(0,0,0,0.8)' // background color always black????
+                        });
+                        var path2 = draw.path(p + "Z");
+                        path2.fill('none').stroke({
+                            width: theme.atlas.outline_width,
+                            color: color
+                        });
+                    }
+                    if (theme.atlas.label && label_short != "" && label_area > 10) {
                     	var x = label_position[0] - offsetX;
                     	var y = label_position[1] - offsetY;
                     	x = offset[0] + scale[0] * (x / dims[0] * width);
@@ -552,7 +596,7 @@ jQuery(document).ready(function () {
     };
     jQuery(document).on('keydown', function(e) {
         if (e.which == 49) {
-            useColorByLabel = !useColorByLabel;
+            theme.atlas.useColorByLabel = !theme.atlas.useColorByLabel;
         }
         if (e.which == 50) { // 2
             if (jQuery('#mpr1_overlay').is(":visible"))
