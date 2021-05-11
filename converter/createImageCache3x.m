@@ -40,7 +40,7 @@ for i=1:d(3)
    end
 end
 data2d8bit = uint8(double(data2d)/double(max(max(data2d))) * (2^8-1));
-data2d16bit = uint16(double(data2d)/double(max(max(data2d))) * (2^16-1));
+data2d16bit = uint16(data2d);
 imwrite(data2d16bit, strcat(name, 'Axial.png'), 'PNG', 'BitDepth', 16);
 %imwrite(data2d, 'T1Axial.jp2', 'jp2', 'Mode', 'lossy', 'CompressionRatio', 3);
 imwrite(data2d8bit, strcat(name, 'Axial.jpg'), 'jpeg', 'Mode', 'lossy', 'BitDepth', 8, 'Quality', 75);
@@ -57,7 +57,7 @@ for i=1:d(2)
    end
 end
 data2d8bit = uint8(double(data2d)/double(max(max(data2d))) * (2^8-1));
-data2d16bit = uint16(double(data2d)/double(max(max(data2d))) * (2^16-1));
+data2d16bit = uint16(data2d);
 imwrite(data2d16bit, strcat(name, 'Coronal.png'), 'PNG', 'BitDepth', 16);
 imwrite(data2d8bit, strcat(name, 'Coronal.jpg'), 'jpeg', 'Mode', 'lossy', 'BitDepth', 8, 'Quality', 75);
 
@@ -73,7 +73,7 @@ for i=1:d(1)
    end
 end
 data2d8bit = uint8(double(data2d)/double(max(max(data2d))) * (2^8-1));
-data2d16bit = uint16(double(data2d)/double(max(max(data2d))) * (2^16-1));
+data2d16bit = uint16(data2d);
 imwrite(data2d16bit, strcat(name, 'Sagittal.png'), 'PNG', 'BitDepth', 16);
 imwrite(data2d8bit, strcat(name, 'Sagittal.jpg'), 'jpeg', 'Mode', 'lossy', 'BitDepth', 8, 'Quality', 75);
 

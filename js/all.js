@@ -43,12 +43,14 @@ const ctx1 = jQuery('#mpr1')[0].getContext("2d");
 const ctx1_overlay = jQuery('#mpr1_overlay')[0].getContext("2d");
 const ctx1_atlas = jQuery('#mpr1_atlas')[0].getContext("2d");
 
-// real height and width of cache mosaic
-var imageWidth = 4096; // 11776; // 40 images
-var imageHeight = 4096; // 11776; // 41 images
+// AXIAL IMAGE
+// real height and width of cache mosaic (we want to keep only 200x200x260 as resolution not 256x256x256)
+var imageWidth = 3900; // 4096; // 11776; // 40 images // 17 images
+var imageHeight = 3000; // 4096; // 11776; // 41 images // 17 images
+
 //var dims = [512, 512, 512];
-var dims = [256, 256, 256];
-var numImagesX = Math.floor(imageWidth / dims[0]);
+var dims = [200, 200, 260];
+var numImagesX = Math.floor(imageWidth / dims[2]);
 var numImagesY = Math.floor(imageWidth / dims[1]);
 var position = [Math.floor(dims[0] / 2), Math.floor(dims[1] / 2), Math.floor(dims[2] / 2)];
 var Primary = new Image();
@@ -248,8 +250,16 @@ function updateMPRPrimary() {
         }
         // now we can scale the output canvas to the same size
         
-        ctx1.filter = "brightness(150%)"; // we can adjust brightness and contrast using filter
-        ctx1.drawImage(Primary, idxy * dims[0], idxx * dims[1], dims[0], dims[1], offset[0], offset[1], scale[0] * width, scale[1] * height);
+        ctx1.filter = "brightness(100%)"; // we can adjust brightness and contrast using filter
+        ctx1.drawImage(Primary, 
+            idxy * dims[1], 
+            idxx * dims[2], 
+            dims[1], 
+            dims[2], 
+            offset[0],
+            offset[1],
+            scale[0] * width, 
+            scale[1] * height);
         var perc = [
             ((position[0] / (dims[0] - 1))),
             ((position[1] / (dims[1] - 1))),
@@ -302,7 +312,15 @@ function updateMPROverlay() {
         }
         // now we can scale the output canvas to the same size
         
-        ctx1_overlay.drawImage(Overlay, idxy * dims[0], idxx * dims[1], dims[0], dims[1], offset[0], offset[1], scale[0] * width, scale[1] * height);
+        ctx1_overlay.drawImage(Overlay, 
+            idxy * dims[1], 
+            idxx * dims[2], 
+            dims[1], 
+            dims[2], 
+            offset[0], 
+            offset[1], 
+            scale[0] * width, 
+            scale[1] * height);
         
         //console.log("Did draw now update last_position");
         
@@ -395,8 +413,165 @@ function resize() {
     svg_atlas.height = jQuery('#mpr1_atlas2').height();
 }
 
+function makeRequest (method, url) {
+    return new Promise(function (resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      xhr.open(method, url, true);
+      xhr.responseType = 'arraybuffer';
+
+      xhr.onload = function (e) {
+        if (this.status >= 200 && this.status < 300) {
+            console.log("got status change");
+            resolve(xhr.response);
+        } else {
+          reject({
+            status: this.status,
+            statusText: xhr.statusText
+          });
+        }
+      };
+      xhr.onerror = function () {
+        reject({
+          status: this.status,
+          statusText: xhr.statusText
+        });
+      };
+      xhr.send();
+    });
+}
+
+// get a webASEG.json and webASEG folder from the harddrive (created by Matlab)
+function readWebASEG(json_filename, callback) {
+    var p = json_filename.split(/\//g); p.pop(); var path = p.join('/');
+    jQuery.getJSON(json_filename, function(data) {
+        var viewIndices;
+        var viewProbs;
+        // we need to pull data.indices and data.probs as raw data
+        makeRequest('GET', path + "/" + data.indices)
+        .then(function(indices) {
+            viewIndices = new Uint32Array(indices);
+            //console.log("got the indices..." + viewIndices.length);
+            return makeRequest('GET', path + "/" + data.probs);
+        })
+        .then(function(probs) {
+            viewProbs = new Float32Array(probs);
+            //console.log("got the probs..." + viewProbs.length);
+            data.viewIndices = viewIndices;
+            data.viewProbs = viewProbs;
+            callback(data, viewIndices, viewProbs);
+        })
+    });
+}
+
+function readOverlayRawFile(overlay_raw_data_path, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', overlay_raw_data_path, true);
+    xhr.responseType = 'arraybuffer';
+    
+    xhr.onload = function(e) {
+      if (this.status == 200) {
+        // get an array buffer
+        var b = e.target.response;
+        let view = new  Float32Array(b);
+        //alert(view.length); // ok should be 4096x4096 float values that can be indexed
+        callback(view);
+      }
+    };
+    
+    xhr.send();
+
+/*    jQuery.ajax({
+        url: overlay_raw_data_path,
+        method: 'GET',
+        responseType: 'arraybuffer'
+    }).then(function(data) {
+        console.log("GOT SOME DATA IN readOverlayFile...");
+        var blob = new Blob([data]);
+        let view; // = new Float32Array(blob);
+        var overlayImageData = new Float32Array(data);
+        blob.arrayBuffer().then(function(d) {
+            if (d instanceof ArrayBuffer) {
+              view = new Float32Array(d);
+              alert(view.length);
+            }
+        });
+        //let view = new Float32Array(blob);
+    });
+    */
+}
+
+// copy the content of the webASEG with a given threshold into AtlasImage16bit
+function copyWebASEG(webASEG, AtlasImage16bit, threshold, start, end, dims) {
+    //var numImX = Math.floor(end[0] / dims[0]);
+    //var numImY = Math.floor(end[1] / dims[1]);
+    for (var i = 0; i < AtlasImage16bit.size; i++) {
+        AtlasImage16bit.data[i] = 0;
+    }
+    var w = AtlasImage16bit.width;
+    var h = AtlasImage16bit.height;
+    var numImX = Math.floor(w / dims[1]);
+    var numImY = Math.floor(h / dims[2]);
+
+    // make two loops, one to create a full volume
+    var buf = new Uint32Array(dims[0]*dims[1]*dims[2]);
+    for (var i = 0; i < webASEG.viewIndices.length; i++) {
+        // what region of interest and what pixel position?
+        // whole volume is 200x200x260x45
+        var idx = webASEG.viewIndices[i];
+        // which region of interest volume is this?
+        var ROI = Math.floor(idx / (dims[0]*dims[1]*dims[2]));
+        var label = webASEG.roicodes[ROI];
+        var name = webASEG.roinames[ROI];
+        // get the index without the offset due to labels
+        idx = idx - (ROI * (dims[0]*dims[1]*dims[2]));
+        // this index is in column major format for matlab, we need the row-major index for javascript
+        //kk = Math.floor(idx / (dims[0]*dims[1]));
+        //jj = Math.floor( (idx - (kk*dims[0]*dims[1]))/dims[0] );
+        //ii = idx - (kk*dims[0]*dims[1]) - (jj*dims[0]);
+
+        if (webASEG.viewProbs[i] < threshold) {
+            //AtlasImage16bit.data[idx] = 0;
+            buf[idx] = 0;
+        } else {
+            buf[idx] = label;
+            //AtlasImage16bit.data[idx] = 43;
+        }
+    }
+    // print to screen, looks ok (coronal section)
+    for (var y = 0; y < dims[2]; y++) {
+        var line = "";
+        for (var x = 0; x < dims[1]; x++) {
+            var idx = y * (dims[1]*dims[0]) + x*dims[0] + Math.floor(dims[0]/2);
+            if (buf[idx] > 0)
+                line = line + "x";
+            else
+                line = line + " ";
+        }
+        console.log(line);
+    }
+
+    // one to copy the full volume over to the AtlasImage16bit in mosaic format
+    for (var slice = 0; slice < dims[0]; slice++) { // axial?
+        // now fill in values from buf into AtlasImage16bit.data
+        var x = Math.floor(slice / numImX); // offset
+        var y = Math.floor(slice - (x * numImX));
+        for (var j = 0; j < dims[2]; j++) {
+            for (var i = 0; i < dims[1]; i++) {
+                idx = j * (dims[1]*dims[0]) + i*dims[0] + slice;
+                var offsetIdx = (y * dims[1] * w) + (j * w) + (x * dims[1]);
+                idx2 = offsetIdx + i;
+                AtlasImage16bit.data[idx2] = buf[idx];
+            }
+        }
+    }
+
+}
+
+
 var atlas_w; // the web-worker that will compute the regions of interest in atlas space
+var atlas_w2; // web-worker for webASEG
 var AtlasImage16bit;
+var atlas_webASEG;
 //
 // cache the overlay in OverlayOrig, processed image in Overlay
 //
@@ -476,10 +651,60 @@ jQuery(document).ready(function () {
     jQuery('#mpr3_overlay').on('swipedown', function (e) { e.preventDefault(); });
     
     // does not work because we hit the max of the buffer here
-    Primary.src = "data/T1Axial.jpg"; // preload T1 image
-    OverlayOrig.src = "data/T1Axial.jpg"; // preload the overlay - here the same, still try to use colors and fusion with threshold
+    Primary.src = "data/Atlas/T1AtlasAxial.jpg"; // preload T1 image
+    //OverlayOrig.src = "data/Atlas/ND_beta_hatAxial_01_256_256_256_single.dat.gz"; // preload the overlay - here the same, still try to use colors and fusion with threshold
+    overlay_raw_data_path = "data/Atlas/ND_beta_hatAxial_04_200_200_260_single.dat";
     Atlas.src = "data/AtlasAxial.png"; // we need 16bit to index all regions of interest
     
+    readWebASEG('data/Atlas/webASEG.json', function(data) {
+        atlas_webASEG = data;
+        console.log("DONE reading webASEG"); 
+        // given a threshold we can create a volume of labels
+        var threshold = 0.7;
+        // we should stuff this into an image (the label as unsigned short)
+               
+        if (typeof (atlas_w2) == "undefined") {
+            atlas_w2 = new Worker("js/atlas_worker2.js");
+        }
+        if (atlas_w2) {
+            atlas_w2.onmessage = function (event) {
+                if (event.data['action'] == "message") {
+                    if (typeof(event.data["text"]) != "undefined")
+                       console.log("Got an event from the atlas worker: " + event.data["text"]);
+                }
+                if (event.data['action'] == "OpenCVReady") {
+                    async function loadAtlas() {
+                        let AtlasImage16bit = await IJS.Image.load("data/AtlasAxial.png");
+                        var start = [0, 0];
+                        var end = [Atlas.width, Atlas.height];
+                        copyWebASEG(atlas_webASEG, AtlasImage16bit, 0.7, start, end, dims);
+                        atlas_w2.postMessage({
+                            "pixels16bit": AtlasImage16bit, // target for the the image
+                            "atlas_colors": atlas_colors,
+                            "start": start,
+                            "end": end,
+                            "dims": [dims[0], dims[1]]
+                        });
+                        return AtlasImage16bit;
+                    };
+                    AtlasImage16bit = loadAtlas().catch(console.error);
+                }
+                if (typeof(event.data["result"]) !== "undefined") {
+                	atlas_outlines = [];
+                	atlas_outlines_labels = [];
+                	var keys = Object.keys(event.data["result"]);
+                	for (var i = 0; i < keys.length; i++) {
+                		atlas_outlines[keys[i]] = event.data["result"][keys[i]]["contour_array"];
+                		atlas_outlines_labels[keys[i]] = event.data["result"][keys[i]]["label_array"];
+                	}
+                	console.log("received the atlas outlines and the atlas labels...");
+                } // end of onmessage
+            };
+        }
+
+    });
+
+
     jQuery('#mpr1_message1').text("Loading data for primary... ");
     jQuery('#mpr1_message2').text("Loading data for overlay... ");
     
@@ -490,6 +715,71 @@ jQuery(document).ready(function () {
         draw(); // start our render loop
     };
     
+    readOverlayRawFile(overlay_raw_data_path, function(arrayBufferView) {
+        // ok we have the data loaded now lets add them to the overlay_image_data
+        if (overlay_loaded)
+            return;
+
+        // maybe we don't have OverlayOrig yet, we should create such an image???
+        var OverlayOrig = new Image(3000,3900);
+
+        // We need a new canvas for the processing of the overlay - this is very slow and
+        // is not done online - for now. A web-worker would be nice.
+        var canvas = document.createElement("canvas");
+        canvas.width  = OverlayOrig.width;  // this is 4096
+        canvas.height = OverlayOrig.height; // this 4096
+        var context = canvas.getContext("2d");
+        // where is OverlayOrig comming from?
+        context.drawImage(OverlayOrig, 0, 0); // nothing in there yet
+        var overlay_image_data = context.getImageData(0, 0, OverlayOrig.width, OverlayOrig.height);
+        // apply the transfer function now
+        var minV = 0; var maxV = 0;
+        for (var i = 0; i < OverlayOrig.width * OverlayOrig.height; i++) {
+            if (minV > arrayBufferView[i])
+                minV =  arrayBufferView[i];
+            if (maxV < arrayBufferView[i])
+                maxV = arrayBufferView[i];
+        }
+        var symMax = Math.max(Math.abs(minV), Math.abs(maxV)); // could be all negative!
+        // this is slow because we access every pixel in the whole volume
+        var threshold = symMax/10; // plus/minus
+
+        for (var y = 0; y < OverlayOrig.height; y++) {
+            for (var x = 0; x < OverlayOrig.width; x++) {
+                var i = y * OverlayOrig.width + x;
+                var j = y * OverlayOrig.width + x;
+                
+                if (Math.abs(arrayBufferView[i]) < threshold) {
+                    overlay_image_data.data[j*4 + 3] = 0;
+                } else {
+                    var middle = Math.floor(redblackblue.length/2);
+                    var idx = middle + Math.floor((arrayBufferView[i] - threshold) / (symMax*2.0 -  threshold) * middle);
+                    // switch the colormap around (red should be positive)
+                    idx = middle - (idx - middle);
+                    overlay_image_data.data[j*4 + 3] = Math.max(0, Math.min(20*Math.abs(idx - middle),255));
+                    // lets use a colormap entry
+                    if (typeof(redblackblue[idx]) == 'undefined')
+                        console.log("ERROR")
+                    overlay_image_data.data[j*4 + 0] = 255 * redblackblue[idx][0];
+                    overlay_image_data.data[j*4 + 1] = 255 * redblackblue[idx][1];
+                    overlay_image_data.data[j*4 + 2] = 255 * redblackblue[idx][2];
+                }
+            }
+        }
+        //for (var i = 0; i < OverlayOrig.width * OverlayOrig.height; i++) {
+        //}
+        context.putImageData(overlay_image_data, 0, 0);
+        // from that context canvas we can create a new image that we can use with drawImage
+        var url = canvas.toDataURL();
+        Overlay.src = url;
+        Overlay.onload = function () {
+            overlay_loaded = true;
+            console.log("processing of overlay cache for canvas is finished");
+        };
+        console.log("loading of overlay cache for canvas is finished");
+    });
+
+    // don't use for raw data
     OverlayOrig.onload = function () {
         if (overlay_loaded)
         return;
@@ -528,7 +818,7 @@ jQuery(document).ready(function () {
         
     };
     
-    Atlas.onload = function () {
+/*    Atlas.onload = function () {
         var regions = {};
         var map = {
             1: "ROI01",
@@ -562,25 +852,6 @@ jQuery(document).ready(function () {
                     }
                     AtlasImage16bit = loadAtlas().catch(console.error);
                 }
-                /*if (event.data['action'] == "OpenCVReady") {
-                    var canvas = document.createElement("canvas");
-                    canvas.setAttribute("id", "atlas_slice_id");
-                    canvas.width = Atlas.width;
-                    canvas.height = Atlas.height;
-                    var context = canvas.getContext("2d");
-                    context.drawImage(Atlas, 0, 0); // why do we have to do this in the main thread?
-                    var atlas_image_data = context.getImageData(0, 0, Atlas.width, Atlas.height); // this is only 8 bit !!!
-                    var start = [0, 0];
-                    var end = [Atlas.width, Atlas.height];
-                    
-                    /*atlas_w.postMessage({
-                        "pixels": atlas_image_data,
-                        "canvas_id": "atlas_slice_id",
-                        "start": start,
-                        "end": end,
-                        "dims": [dims[0], dims[1]]
-                    });
-                    }*/
                 if (typeof(event.data["result"]) !== "undefined") {
                 	atlas_outlines = [];
                 	atlas_outlines_labels = [];
@@ -591,9 +862,9 @@ jQuery(document).ready(function () {
                 	}
                 	console.log("received the atlas outlines and the atlas labels...");
                 } // end of onmessage
-                };
+            };
         }
-    };
+    }; */
     jQuery(document).on('keydown', function(e) {
         if (e.which == 49) {
             theme.atlas.useColorByLabel = !theme.atlas.useColorByLabel;
