@@ -43,6 +43,7 @@
     </div>
   </div>
 
+<canvas id="debug" width="3000" height="3900"></canvas>
   </div>  
 
     <script src="js/jquery-3.2.1.min.js" type="text/javascript"></script>

@@ -151,8 +151,8 @@ function updateAtlasOverlays() {
             		for (var point = 0; point < d.length; point++) {
             			var x = d[point][0] - offsetX;
             			var y = d[point][1] - offsetY;
-                        x = offset[0] + scale[0] * (x / dims[0] * width);
-                        y = offset[1] + scale[1] * (y / dims[1] * height);
+                        x = offset[0] + scale[0] * (x / dims[1] * width);
+                        y = offset[1] + scale[1] * (y / dims[2] * height);
                         if (p == "") {
                         	p = "m " + x.toFixed(2) + "," + y.toFixed(2) + " ";
                         } else {
@@ -175,8 +175,8 @@ function updateAtlasOverlays() {
                     if (theme.atlas.label && label_short != "" && label_area > 10) {
                     	var x = label_position[0] - offsetX;
                     	var y = label_position[1] - offsetY;
-                    	x = offset[0] + scale[0] * (x / dims[0] * width);
-                    	y = offset[1] + scale[1] * (y / dims[1] * height);
+                    	x = offset[0] + scale[0] * (x / dims[1] * width);
+                    	y = offset[1] + scale[1] * (y / dims[2] * height);
 
                     	var text = draw.plain(label_short).font({
                     		family: 'Helvetica',
@@ -554,17 +554,63 @@ function copyWebASEG(webASEG, AtlasImage16bit, threshold, start, end, dims) {
     for (var slice = 0; slice < dims[0]; slice++) { // axial?
         // now fill in values from buf into AtlasImage16bit.data
         var x = Math.floor(slice / numImX); // offset
-        var y = Math.floor(slice - (x * numImX));
+        var y = slice - (x * numImX);
         for (var j = 0; j < dims[2]; j++) {
             for (var i = 0; i < dims[1]; i++) {
-                idx = j * (dims[1]*dims[0]) + i*dims[0] + slice;
-                var offsetIdx = (y * dims[1] * w) + (j * w) + (x * dims[1]);
+                idx = ((dims[2]-j-1) * (dims[1]*dims[0])) + (i*dims[0]) + slice;
+                var offsetIdx = (y * dims[2] * w) + (j * w) + (x * dims[1]);
                 idx2 = offsetIdx + i;
                 AtlasImage16bit.data[idx2] = buf[idx];
+                // help by coloring the borders
+                if (i > (dims[1]-2))
+                    AtlasImage16bit.data[idx2] = 200;
+                if (j > (dims[2]-2))
+                    AtlasImage16bit.data[idx2] = 200;
             }
         }
     }
+    // show the image in AtlasImage16bit in the debug canvas
+    if (true) {
+        function setPixel(imageData, x, y, r, g, b, a){
+            var index = x + (y * Math.round(imageData.width));
+            imageData.data[index * 4 + 0] = r;
+            imageData.data[index * 4 + 1] = g;
+            imageData.data[index * 4 + 2] = b;
+            imageData.data[index * 4 + 3] = a;
+        }
+        jQuery('#debug').width(w);
+        jQuery('#debug').height(h);
+        var canvas = jQuery('#debug')[0];
+        //var ctx = canvas.getContext("2d");
 
+        var imageData = canvas.getContext("2d").getImageData(0, 0, canvas.clientWidth, canvas.clientHeight);
+        //var imageData = canvas.getContext("2d").createImageData(canvas.clientWidth, canvas.clientHeight);
+        var idx = 0;
+        for (var y = 0; y < h; y++) {
+            for (var x = 0; x < w; x++) {       
+                var idx = y*w + x;  
+                var intensity = AtlasImage16bit.data[idx];
+                if (intensity > 0) {
+                    intensity *= 4;
+                    if (intensity > 255)
+                        intensity = 255;
+                }
+                //intensity = 255;
+                //idx = idx + 1;
+                setPixel(imageData, x, y, intensity, intensity, intensity, 255);
+                //if (Math.round(x/8) % 200 == 0 || Math.round(y/8) % 260 == 0)
+                //   setPixel(imageData, Math.round(x/8), Math.round(y/8), 255, 255, 255, 255);
+            }
+        }
+        canvas.getContext("2d").putImageData(imageData, 0, 0);
+        // and download the image
+
+        var link = document.createElement('a');
+        link.download = 'snapshot.png';
+        link.href = document.getElementById('debug').toDataURL();
+        link.click();
+        jQuery('#debug').hide();
+    }
 }
 
 
@@ -683,7 +729,7 @@ jQuery(document).ready(function () {
                             "atlas_colors": atlas_colors,
                             "start": start,
                             "end": end,
-                            "dims": [dims[0], dims[1]]
+                            "dims": [dims[1], dims[2]]
                         });
                         return AtlasImage16bit;
                     };
