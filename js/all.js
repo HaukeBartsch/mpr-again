@@ -250,7 +250,7 @@ function updateMPRPrimary() {
         }
         // now we can scale the output canvas to the same size
         
-        ctx1.filter = "brightness(100%)"; // we can adjust brightness and contrast using filter
+        ctx1.filter = "brightness(150%)"; // we can adjust brightness and contrast using filter
         ctx1.drawImage(Primary, 
             idxy * dims[1], 
             idxx * dims[2], 
@@ -538,7 +538,7 @@ function copyWebASEG(webASEG, AtlasImage16bit, threshold, start, end, dims) {
         }
     }
     // print to screen, looks ok (coronal section)
-    for (var y = 0; y < dims[2]; y++) {
+    /*for (var y = 0; y < dims[2]; y++) {
         var line = "";
         for (var x = 0; x < dims[1]; x++) {
             var idx = y * (dims[1]*dims[0]) + x*dims[0] + Math.floor(dims[0]/2);
@@ -548,7 +548,7 @@ function copyWebASEG(webASEG, AtlasImage16bit, threshold, start, end, dims) {
                 line = line + " ";
         }
         console.log(line);
-    }
+    }*/
 
     // one to copy the full volume over to the AtlasImage16bit in mosaic format
     for (var slice = 0; slice < dims[0]; slice++) { // axial?
@@ -562,15 +562,15 @@ function copyWebASEG(webASEG, AtlasImage16bit, threshold, start, end, dims) {
                 idx2 = offsetIdx + i;
                 AtlasImage16bit.data[idx2] = buf[idx];
                 // help by coloring the borders
-                if (i > (dims[1]-2))
-                    AtlasImage16bit.data[idx2] = 200;
-                if (j > (dims[2]-2))
-                    AtlasImage16bit.data[idx2] = 200;
+                //if (i > (dims[1]-2))
+                //    AtlasImage16bit.data[idx2] = 200;
+                //if (j > (dims[2]-2))
+                //    AtlasImage16bit.data[idx2] = 200;
             }
         }
     }
     // show the image in AtlasImage16bit in the debug canvas
-    if (true) {
+    if (false) {
         function setPixel(imageData, x, y, r, g, b, a){
             var index = x + (y * Math.round(imageData.width));
             imageData.data[index * 4 + 0] = r;
@@ -641,7 +641,7 @@ jQuery(document).ready(function () {
             position[0] = dims[0] - 1;
         }
         //updateImagesByPosition(position[0], '#mpr1');
-        console.log(position.join());
+        //console.log(position.join());
     });
     
     jQuery('#mpr2').on('DOMMouseScroll mousewheel', function (e) {
@@ -655,7 +655,7 @@ jQuery(document).ready(function () {
             position[1] = dims[1] - 1;
         }
         //updateImagesByPosition(position[1], '#mpr2');
-        console.log(position.join());
+        //console.log(position.join());
     });
     
     jQuery('#mpr3').on('DOMMouseScroll mousewheel', function (e) {
@@ -669,7 +669,7 @@ jQuery(document).ready(function () {
             position[2] = dims[2] - 1;
         }
         //updateImagesByPosition(position[2], '#mpr3');
-        console.log(position.join());
+        //console.log(position.join());
     });
     
     ["mousedown", "mouseup", "mousemove"].forEach(function (name) {
@@ -699,16 +699,29 @@ jQuery(document).ready(function () {
     // does not work because we hit the max of the buffer here
     Primary.src = "data/Atlas/T1AtlasAxial.jpg"; // preload T1 image
     //OverlayOrig.src = "data/Atlas/ND_beta_hatAxial_01_256_256_256_single.dat.gz"; // preload the overlay - here the same, still try to use colors and fusion with threshold
-    overlay_raw_data_path = "data/Atlas/ND_beta_hatAxial_04_200_200_260_single.dat";
+    overlay_raw_data_path = "data/Atlas/ND_beta_hatAxial_07_200_200_260_single.dat";
     Atlas.src = "data/AtlasAxial.png"; // we need 16bit to index all regions of interest
     
     readWebASEG('data/Atlas/webASEG.json', function(data) {
         atlas_webASEG = data;
-        console.log("DONE reading webASEG"); 
+        //console.log("DONE reading webASEG"); 
         // given a threshold we can create a volume of labels
-        var threshold = 0.7;
+        var threshold = 0.5;
+        var accuracy = 0.3; // how accurate is the outline? Error allowed after simplifying polygon
         // we should stuff this into an image (the label as unsigned short)
                
+        // instead of using the FreeSurfer colors in atlas_colors, we need to create our own 
+        // description based on the entries in data.roinames and data.roicodes
+        // structure should be:
+        // var atlas_colors = {
+		//   "0": ["Unknown", 0, 0, 0, 0],
+		//   "1": ["Left - Cerebral - Exterior", 70, 130, 180, 0],
+
+        var local_atlas_colors = {};
+        for (var i = 0; i < data.roicodes.length; i++) {
+            local_atlas_colors[data.roicodes[i]] = [ data.roinames[i], 255,255,255,0 ];
+        }
+
         if (typeof (atlas_w2) == "undefined") {
             atlas_w2 = new Worker("js/atlas_worker2.js");
         }
@@ -723,13 +736,14 @@ jQuery(document).ready(function () {
                         let AtlasImage16bit = await IJS.Image.load("data/AtlasAxial.png");
                         var start = [0, 0];
                         var end = [Atlas.width, Atlas.height];
-                        copyWebASEG(atlas_webASEG, AtlasImage16bit, 0.7, start, end, dims);
+                        copyWebASEG(atlas_webASEG, AtlasImage16bit, threshold, start, end, dims);
                         atlas_w2.postMessage({
                             "pixels16bit": AtlasImage16bit, // target for the the image
-                            "atlas_colors": atlas_colors,
+                            "atlas_colors": local_atlas_colors,
                             "start": start,
                             "end": end,
-                            "dims": [dims[1], dims[2]]
+                            "dims": [dims[1], dims[2]],
+                            "accuracy": accuracy
                         });
                         return AtlasImage16bit;
                     };
@@ -789,26 +803,29 @@ jQuery(document).ready(function () {
         var symMax = Math.max(Math.abs(minV), Math.abs(maxV)); // could be all negative!
         // this is slow because we access every pixel in the whole volume
         var threshold = symMax/10; // plus/minus
+        var exponent = 0.5; // change the transparency to make it more easier to see
 
+        var middle = Math.floor(redblackblue.length/2);
         for (var y = 0; y < OverlayOrig.height; y++) {
             for (var x = 0; x < OverlayOrig.width; x++) {
                 var i = y * OverlayOrig.width + x;
-                var j = y * OverlayOrig.width + x;
+                //var j = y * OverlayOrig.width + x;
                 
                 if (Math.abs(arrayBufferView[i]) < threshold) {
-                    overlay_image_data.data[j*4 + 3] = 0;
+                    overlay_image_data.data[i*4 + 3] = 0;
                 } else {
-                    var middle = Math.floor(redblackblue.length/2);
-                    var idx = middle + Math.floor((arrayBufferView[i] - threshold) / (symMax*2.0 -  threshold) * middle);
+                    //var idx = middle + Math.floor((arrayBufferView[i] - threshold) / (symMax*2.0 -  threshold) * middle);
+                    var idx = middle + Math.round( (arrayBufferView[i] / symMax) * middle);
                     // switch the colormap around (red should be positive)
                     idx = middle - (idx - middle);
-                    overlay_image_data.data[j*4 + 3] = Math.max(0, Math.min(20*Math.abs(idx - middle),255));
+                    var opacity = Math.pow(Math.abs(arrayBufferView[i] / symMax), exponent);
+                    overlay_image_data.data[i*4 + 3] = opacity * 255; // Math.max(0, Math.min(2*Math.pow(Math.abs(idx - middle),exponent),255));
                     // lets use a colormap entry
                     if (typeof(redblackblue[idx]) == 'undefined')
                         console.log("ERROR")
-                    overlay_image_data.data[j*4 + 0] = 255 * redblackblue[idx][0];
-                    overlay_image_data.data[j*4 + 1] = 255 * redblackblue[idx][1];
-                    overlay_image_data.data[j*4 + 2] = 255 * redblackblue[idx][2];
+                    overlay_image_data.data[i*4 + 0] = 255 * redblackblue[idx][0];
+                    overlay_image_data.data[i*4 + 1] = 255 * redblackblue[idx][1];
+                    overlay_image_data.data[i*4 + 2] = 255 * redblackblue[idx][2];
                 }
             }
         }
