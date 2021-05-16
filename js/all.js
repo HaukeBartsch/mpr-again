@@ -132,6 +132,7 @@ function updateAtlasOverlays() {
                 var label_short = "";
                 var label_position = [];
                 var label_area = 0.0;
+                var label_hole = false;
 
                 if (typeof(atlas_colors[label[lab]]) !== 'undefined' && theme.atlas.useColorByLabel) {
                 	color = "rgb(" + atlas_colors[label[lab]][1] + "," + atlas_colors[label[lab]][2] + "," + atlas_colors[label[lab]][3] + ")";
@@ -145,6 +146,7 @@ function updateAtlasOverlays() {
             					label_short = label_name.replace(/[^A-Z0-9]/g, '');
             					label_position = atlas_outlines_labels[pos][label[lab]][idx].centroid;
             					label_area = atlas_outlines_labels[pos][label[lab]][idx].area;
+            					label_hole = atlas_outlines_labels[pos][label[lab]][idx].hole;
             				}
                     //ctx1_atlas.fillStyle = "#999911";
             		var p = "";
@@ -172,7 +174,7 @@ function updateAtlasOverlays() {
                             color: color
                         });
                     }
-                    if (theme.atlas.label && label_short != "" && label_area > 10) {
+                    if (theme.atlas.label && label_short != "" && label_area > 10 && !label_hole) {
                     	var x = label_position[0] - offsetX;
                     	var y = label_position[1] - offsetY;
                     	x = offset[0] + scale[0] * (x / dims[1] * width);
@@ -180,7 +182,7 @@ function updateAtlasOverlays() {
 
                     	var text = draw.plain(label_short).font({
                     		family: 'Helvetica',
-                    		size: 9,
+                    		size: label_hole?19:9,
                     		anchor: "middle",
                     		fill: "#000",
                     		weight: 900
@@ -192,7 +194,7 @@ function updateAtlasOverlays() {
 
                     	var text = draw.plain(label_short).font({
                     		family: 'Helvetica',
-                    		size: 9,
+                    		size: label_hole?19:9,
                     		anchor: "middle",
                     		fill: "#ffffff",
                     		weight: 400
