@@ -45,13 +45,13 @@ const ctx1_atlas = jQuery('#mpr1_atlas')[0].getContext("2d");
 
 // AXIAL IMAGE
 // real height and width of cache mosaic (we want to keep only 200x200x260 as resolution not 256x256x256)
-var imageWidth = 3900; // 4096; // 11776; // 40 images // 17 images
-var imageHeight = 3000; // 4096; // 11776; // 41 images // 17 images
+var imageWidth = 3000; // 4096; // 11776; // 40 images // 17 images
+var imageHeight = 3900; // 4096; // 11776; // 41 images // 17 images
 
 //var dims = [512, 512, 512];
 var dims = [200, 200, 260];
-var numImagesX = Math.floor(imageWidth / dims[2]);
-var numImagesY = Math.floor(imageWidth / dims[1]);
+var numImagesX = Math.floor(imageWidth / dims[1]);
+var numImagesY = Math.floor(imageHeight / dims[2]);
 var position = [Math.floor(dims[0] / 2), Math.floor(dims[1] / 2), Math.floor(dims[2] / 2)];
 var Primary = new Image();
 var OverlayOrig = new Image(); // the original overlay before processing
@@ -252,7 +252,7 @@ function updateMPRPrimary() {
         }
         // now we can scale the output canvas to the same size
         
-        ctx1.filter = "brightness(150%)"; // we can adjust brightness and contrast using filter
+        //3ctx1.filter = "brightness(150%)"; // we can adjust brightness and contrast using filter
         ctx1.drawImage(Primary, 
             idxy * dims[1], 
             idxx * dims[2], 
@@ -389,6 +389,31 @@ function mouseEvents(e) {
             }
         }
         e.preventDefault();
+    } else if (e.type === "mousemove" && !mouse.button) {
+        // just show the value of beta-hat at this location
+        const bounds = jQuery(mpr)[0].getBoundingClientRect();
+        var p = [e.pageX - bounds.left, e.pageY - bounds.top]; // I should be inside the picture, how to scale?
+        var canvas = jQuery('#mpr1_overlay')[0];
+        var width = canvas.width;
+        var height = canvas.height;
+        var scale = [1.0, 1.0]; // one scale to rule them both
+        var offset = [0, 0];
+        if (width > height) { // whatever the larger dimension
+            scale[1] = 1.0 / (height / width);
+            // we need an offset to center the smaller dimension
+            offset[1] = (height - (scale[1] * height)) / 2;
+        } else {
+            scale[0] = 1.0 / (width / height); // height will be 100%
+            offset[0] = (width - (scale[0] * width)) / 2;
+        }
+        // our p is in after scale coordinates, we would like to undo to get
+        // the pixel coordinates instead
+        p[0] = Math.floor(((p[0] - offset[0])/scale[0])/width*dims[1]);
+        p[1] = Math.floor(((p[1] - offset[1])/scale[1])/height*dims[2]);
+        var os = position[0] * (dims[1] * dims[2]);
+        // this is not correct yet. Our OverlayRawData is structured like a large image.
+        // jQuery('#mpr1_message1').text("mouse position at: " + JSON.stringify(p) + " is: " + OverlayRawData[os + p[1]*dims[1] + p[0]].toFixed(4));
+        e.preventDefault();
     }
 }
 
@@ -475,37 +500,16 @@ function readOverlayRawFile(overlay_raw_data_path, callback) {
         // get an array buffer
         var b = e.target.response;
         let view = new  Float32Array(b);
-        //alert(view.length); // ok should be 4096x4096 float values that can be indexed
+        //alert(view.length); // ok should be 3000x3900 float values that can be indexed
         callback(view);
       }
     };
     
     xhr.send();
-
-/*    jQuery.ajax({
-        url: overlay_raw_data_path,
-        method: 'GET',
-        responseType: 'arraybuffer'
-    }).then(function(data) {
-        console.log("GOT SOME DATA IN readOverlayFile...");
-        var blob = new Blob([data]);
-        let view; // = new Float32Array(blob);
-        var overlayImageData = new Float32Array(data);
-        blob.arrayBuffer().then(function(d) {
-            if (d instanceof ArrayBuffer) {
-              view = new Float32Array(d);
-              alert(view.length);
-            }
-        });
-        //let view = new Float32Array(blob);
-    });
-    */
 }
 
 // copy the content of the webASEG with a given threshold into AtlasImage16bit
 function copyWebASEG(webASEG, AtlasImage16bit, threshold, start, end, dims) {
-    //var numImX = Math.floor(end[0] / dims[0]);
-    //var numImY = Math.floor(end[1] / dims[1]);
     for (var i = 0; i < AtlasImage16bit.size; i++) {
         AtlasImage16bit.data[i] = 0;
     }
@@ -516,6 +520,7 @@ function copyWebASEG(webASEG, AtlasImage16bit, threshold, start, end, dims) {
 
     // make two loops, one to create a full volume
     var buf = new Uint32Array(dims[0]*dims[1]*dims[2]);
+    var bufHighestProb = new Float32Array(dims[0]*dims[1]*dims[2]);
     for (var i = 0; i < webASEG.viewIndices.length; i++) {
         // what region of interest and what pixel position?
         // whole volume is 200x200x260x45
@@ -526,31 +531,31 @@ function copyWebASEG(webASEG, AtlasImage16bit, threshold, start, end, dims) {
         var name = webASEG.roinames[ROI];
         // get the index without the offset due to labels
         idx = idx - (ROI * (dims[0]*dims[1]*dims[2]));
-        // this index is in column major format for matlab, we need the row-major index for javascript
-        //kk = Math.floor(idx / (dims[0]*dims[1]));
-        //jj = Math.floor( (idx - (kk*dims[0]*dims[1]))/dims[0] );
-        //ii = idx - (kk*dims[0]*dims[1]) - (jj*dims[0]);
 
         if (webASEG.viewProbs[i] < threshold) {
-            //AtlasImage16bit.data[idx] = 0;
             buf[idx] = 0;
         } else {
-            buf[idx] = label;
-            //AtlasImage16bit.data[idx] = 43;
+            // only mark this voxel as label if there is not already a higher prob label at this location
+            if (bufHighestProb[idx] < webASEG.viewProbs[i]) {
+                buf[idx] = label;
+                bufHighestProb[idx] = webASEG.viewProbs[i];
+            }
         }
     }
     // print to screen, looks ok (coronal section)
-    /*for (var y = 0; y < dims[2]; y++) {
-        var line = "";
-        for (var x = 0; x < dims[1]; x++) {
-            var idx = y * (dims[1]*dims[0]) + x*dims[0] + Math.floor(dims[0]/2);
-            if (buf[idx] > 0)
-                line = line + "x";
-            else
-                line = line + " ";
+    if (false) {
+        for (var y = 0; y < dims[2]; y++) {
+            var line = "";
+            for (var x = 0; x < dims[1]; x++) {
+                var idx = y * (dims[1]*dims[0]) + x*dims[0] + Math.floor(dims[0]/2);
+                if (buf[idx] > 0)
+                    line = line + "x";
+                else
+                    line = line + " ";
+            }
+            console.log(line);
         }
-        console.log(line);
-    }*/
+    }
 
     // one to copy the full volume over to the AtlasImage16bit in mosaic format
     for (var slice = 0; slice < dims[0]; slice++) { // axial?
@@ -620,6 +625,7 @@ var atlas_w; // the web-worker that will compute the regions of interest in atla
 var atlas_w2; // web-worker for webASEG
 var AtlasImage16bit;
 var atlas_webASEG;
+var OverlayRawData; // store the raw beta-hat values here
 //
 // cache the overlay in OverlayOrig, processed image in Overlay
 //
@@ -701,14 +707,14 @@ jQuery(document).ready(function () {
     // does not work because we hit the max of the buffer here
     Primary.src = "data/Atlas/T1AtlasAxial.jpg"; // preload T1 image
     //OverlayOrig.src = "data/Atlas/ND_beta_hatAxial_01_256_256_256_single.dat.gz"; // preload the overlay - here the same, still try to use colors and fusion with threshold
-    overlay_raw_data_path = "data/Atlas/ND_beta_hatAxial_07_200_200_260_single.dat";
-    Atlas.src = "data/AtlasAxial.png"; // we need 16bit to index all regions of interest
+    overlay_raw_data_path = "data/Atlas/ND_beta_hatAxial_08_200_200_260_single.dat";
+    //Atlas.src = "data/AtlasAxial.png"; // we need 16bit to index all regions of interest44
     
     readWebASEG('data/Atlas/webASEG.json', function(data) {
         atlas_webASEG = data;
         //console.log("DONE reading webASEG"); 
         // given a threshold we can create a volume of labels
-        var threshold = 0.5;
+        var threshold = 0.7;
         var accuracy = 0.3; // how accurate is the outline? Error allowed after simplifying polygon
         // we should stuff this into an image (the label as unsigned short)
                
@@ -735,9 +741,11 @@ jQuery(document).ready(function () {
                 }
                 if (event.data['action'] == "OpenCVReady") {
                     async function loadAtlas() {
+                        // todo: We don't need to read an image here. Would be sufficient to just
+                        // create it here.
                         let AtlasImage16bit = await IJS.Image.load("data/AtlasAxial.png");
                         var start = [0, 0];
-                        var end = [Atlas.width, Atlas.height];
+                        var end = [Primary.width, Primary.height]; // should be 3000, 3900
                         copyWebASEG(atlas_webASEG, AtlasImage16bit, threshold, start, end, dims);
                         atlas_w2.postMessage({
                             "pixels16bit": AtlasImage16bit, // target for the the image
@@ -782,6 +790,8 @@ jQuery(document).ready(function () {
         if (overlay_loaded)
             return;
 
+        OverlayRawData = arrayBufferView;
+        
         // maybe we don't have OverlayOrig yet, we should create such an image???
         var OverlayOrig = new Image(3000,3900);
 
@@ -804,8 +814,9 @@ jQuery(document).ready(function () {
         }
         var symMax = Math.max(Math.abs(minV), Math.abs(maxV)); // could be all negative!
         // this is slow because we access every pixel in the whole volume
-        var threshold = symMax/10; // plus/minus
+        var threshold = 0;//symMax/20; // plus/minus (beta, mask)
         var exponent = 0.5; // change the transparency to make it more easier to see
+        console.log("Overlay: range is -" + symMax.toFixed(3) + ".." + symMax.toFixed(3));
 
         var middle = Math.floor(redblackblue.length/2);
         for (var y = 0; y < OverlayOrig.height; y++) {
