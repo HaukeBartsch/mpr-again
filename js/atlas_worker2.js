@@ -194,7 +194,7 @@ function parseData2(image, canvas_slice_id, start, end, atlas_colors, accuracy) 
             	perimeter: perimeter,
             	label: label,
                 hole: hole,
-            	name: atlas_colors[label][0]
+            	name: atlas_colors[label+1][0]
             });
         }
         contours.delete();

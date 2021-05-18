@@ -89,8 +89,6 @@ function draw(timestamp) {
     requestAnimationFrame(draw);
 }
 
-// replaced with theme
-// var useColorByLabel = false;
 
 var last_position_atlas; // cache this to make animation requests faster
 var requireNewDraw_atlas = false;
@@ -196,7 +194,7 @@ function updateAtlasOverlays() {
 
                     	var text = draw.plain(label_short).font({
                     		family: 'Helvetica',
-                    		size: label_hole?19:9,
+                    		size: 9,
                     		anchor: "middle",
                     		fill: "#000",
                     		weight: 900
@@ -208,7 +206,7 @@ function updateAtlasOverlays() {
 
                     	var text = draw.plain(label_short).font({
                     		family: 'Helvetica',
-                    		size: label_hole?19:9,
+                    		size: 9,
                     		anchor: "middle",
                     		fill: "#ffffff",
                     		weight: 400
@@ -542,6 +540,8 @@ function copyWebASEG(webASEG, AtlasImage16bit, threshold, start, end, dims) {
         // which region of interest volume is this?
         var ROI = Math.floor(idx / (dims[0]*dims[1]*dims[2]));
         var label = webASEG.roicodes[ROI];
+        if (label == 0)
+            continue; // we don't need to do anything for the 0 label, its zero already
         var name = webASEG.roinames[ROI];
         // get the index without the offset due to labels
         idx = idx - (ROI * (dims[0]*dims[1]*dims[2]));
