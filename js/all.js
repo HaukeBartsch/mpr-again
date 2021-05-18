@@ -8,7 +8,12 @@ var themes = {
 			"show": true
 		},
 		"overlay": {
-			"show": true
+			"show": true,
+            "colormap": { 
+                "max": 0.8,
+                "blank_out": 0,
+                "gamma": 0.5
+            }
 		},
 		"atlas": {
 			"show": true,
@@ -16,15 +21,22 @@ var themes = {
 			"colorByLabel": false,
 			"outlines": true,
 			"outline_width": 1,
-			"outline_color": "#fff"
-		}
+			"outline_color": "#fff",
+            "prob_threshold": 0.7,
+            "simplify_error": 0.3
+        }
 	}, // no change
 	"print": {
 		"primary": {
 			"show": false
 		},
 		"overlay": {
-			"show": true
+			"show": true,
+            "colormap": { 
+                "max": 0.8,
+                "blank_out": 0,
+                "gamma":  0.5
+            }
 		},
 		"atlas": {
 			"show": true,
@@ -32,7 +44,9 @@ var themes = {
 			"outlines": true,
 			"outline_width": 5,
 			"outline_color": "#fff",
-			"colorByLabel": false
+			"colorByLabel": false,
+            "prob_threshold": 0.7,
+            "simplify_error": 0.3
 		}
 	}
 };
@@ -714,8 +728,8 @@ jQuery(document).ready(function () {
         atlas_webASEG = data;
         //console.log("DONE reading webASEG"); 
         // given a threshold we can create a volume of labels
-        var threshold = 0.7;
-        var accuracy = 0.3; // how accurate is the outline? Error allowed after simplifying polygon
+        var threshold = theme.atlas.prob_threshold;
+        var accuracy = theme.atlas.simplify_error; // how accurate is the outline? Error allowed after simplifying polygon
         // we should stuff this into an image (the label as unsigned short)
                
         // instead of using the FreeSurfer colors in atlas_colors, we need to create our own 
@@ -813,9 +827,18 @@ jQuery(document).ready(function () {
                 maxV = arrayBufferView[i];
         }
         var symMax = Math.max(Math.abs(minV), Math.abs(maxV)); // could be all negative!
+        if (typeof (theme.overlay.colormap.max) != 'undefined')
+            symMax = theme.overlay.colormap.max;
+
         // this is slow because we access every pixel in the whole volume
         var threshold = 0;//symMax/20; // plus/minus (beta, mask)
+        if (typeof (theme.overlay.colormap.blank_out) != 'undefined')
+            threshold = theme.overlay.colormap.blank_out;
+
         var exponent = 0.5; // change the transparency to make it more easier to see
+        if (typeof (theme.overlay.colormap.gamma) != 'undefined')
+            exponent = theme.overlay.colormap.gamma;
+
         console.log("Overlay: range is -" + symMax.toFixed(3) + ".." + symMax.toFixed(3));
 
         var middle = Math.floor(redblackblue.length/2);
@@ -834,8 +857,10 @@ jQuery(document).ready(function () {
                     var opacity = Math.pow(Math.abs(arrayBufferView[i] / symMax), exponent);
                     overlay_image_data.data[i*4 + 3] = opacity * 255; // Math.max(0, Math.min(2*Math.pow(Math.abs(idx - middle),exponent),255));
                     // lets use a colormap entry
-                    if (typeof(redblackblue[idx]) == 'undefined')
-                        console.log("ERROR")
+                    //if (typeof(redblackblue[idx]) == 'undefined')
+                    //    console.log("ERROR")
+                    // use clamping
+                    idx = Math.max(0, Math.min(idx, redblackblue.length));
                     overlay_image_data.data[i*4 + 0] = 255 * redblackblue[idx][0];
                     overlay_image_data.data[i*4 + 1] = 255 * redblackblue[idx][1];
                     overlay_image_data.data[i*4 + 2] = 255 * redblackblue[idx][2];
