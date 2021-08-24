@@ -22,8 +22,8 @@ var themes = {
 			"outlines": true,
 			"outline_width": 1,
 			"outline_color": "#fff",
-            "prob_threshold": 0.7,
-            "simplify_error": 0.3
+            "prob_threshold": 0.9,
+            "simplify_error": 0.01
         }
 	}, // no change
 	"print": {
@@ -46,7 +46,7 @@ var themes = {
 			"outline_color": "#fff",
 			"colorByLabel": false,
             "prob_threshold": 0.7,
-            "simplify_error": 0.3
+            "simplify_error": 0.01
 		}
 	}
 };

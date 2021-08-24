@@ -102,6 +102,87 @@ Object.defineProperty(Array.prototype, 'chunk', {
 	}
 });
 
+
+function interpolate(t, degree, points, knots, weights, result) {
+
+    var i,j,s,l;              // function-scoped iteration variables
+    var n = points.length;    // points count
+    var d = points[0].length; // point dimensionality
+  
+    if(degree < 1) throw new Error('degree must be at least 1 (linear)');
+    if(degree > (n-1)) throw new Error('degree must be less than or equal to point count - 1');
+  
+    if(!weights) {
+      // build weight vector of length [n]
+      weights = [];
+      for(i=0; i<n; i++) {
+        weights[i] = 1;
+      }
+    }
+  
+    if(!knots) {
+      // build knot vector of length [n + degree + 1]
+      var knots = [];
+      for(i=0; i<n+degree+1; i++) {
+        knots[i] = i;
+      }
+    } else {
+      if(knots.length !== n+degree+1) throw new Error('bad knot vector length');
+    }
+  
+    var domain = [
+      degree,
+      knots.length-1 - degree
+    ];
+  
+    // remap t to the domain where the spline is defined
+    var low  = knots[domain[0]];
+    var high = knots[domain[1]];
+    t = t * (high - low) + low;
+  
+    if(t < low || t > high) throw new Error('out of bounds');
+  
+    // find s (the spline segment) for the [t] value provided
+    for(s=domain[0]; s<domain[1]; s++) {
+      if(t >= knots[s] && t <= knots[s+1]) {
+        break;
+      }
+    }
+  
+    // convert points to homogeneous coordinates
+    var v = [];
+    for(i=0; i<n; i++) {
+      v[i] = [];
+      for(j=0; j<d; j++) {
+        v[i][j] = points[i][j] * weights[i];
+      }
+      v[i][d] = weights[i];
+    }
+  
+    // l (level) goes from 1 to the curve degree + 1
+    var alpha;
+    for(l=1; l<=degree+1; l++) {
+      // build level l of the pyramid
+      for(i=s; i>s-degree-1+l; i--) {
+        alpha = (t - knots[i]) / (knots[i+degree+1-l] - knots[i]);
+  
+        // interpolate each component
+        for(j=0; j<d+1; j++) {
+          v[i][j] = (1 - alpha) * v[i-1][j] + alpha * v[i][j];
+        }
+      }
+    }
+  
+    // convert back to cartesian and return
+    var result = result || [];
+    for(i=0; i<d; i++) {
+      result[i] = v[s][i] / v[s][d];
+    }
+  
+    return result;
+}
+
+
 function parseData2(image, canvas_slice_id, start, end, atlas_colors, accuracy) {
 	let dat = [];
 	var w = image.width;
@@ -116,6 +197,10 @@ function parseData2(image, canvas_slice_id, start, end, atlas_colors, accuracy) 
 	dat.height = end[1] - start[1];
     // how many rows? (Height many), how many columns? (Rows many)
 	let src = cv.matFromArray(dat.height, dat.width, cv.CV_16UC1, dat);
+    // can we supersample this image to make it appear smoother?
+	//let src3 = new cv.Mat(); // .zeros(src.cols, src.rows, cv.CV_8UC4);
+    //cv.resize(src, src3, new cv.Size(dat.height*4, dat.width*4), 0, 0, cv.INTER_CUBIC);
+
 	let src2 = new cv.Mat(); // .zeros(src.cols, src.rows, cv.CV_8UC4);
 	var labelsInThisSlice = {};
 	for (var i = 0; i < dat.length; i++) {
@@ -129,14 +214,18 @@ function parseData2(image, canvas_slice_id, start, end, atlas_colors, accuracy) 
 	for (var labelIdx = 0; labelIdx < labelsInThisSlice.length; labelIdx++) {
         var label = parseInt(labelsInThisSlice[labelIdx]);
         // for now remove some of the large label (white and gray matter)
-        if (label == 1  // left cerebral white matter
-            || label == 2 // left cerebral cortex
-            || label == 16 // CSF
-            || label == 21 // Right cerebral white matter
-            || label == 22 // right cerebral cortex
-            ) {
-        	continue;
-        }
+
+        //atlas_colors[label+1][0]
+        var blank_names = [ "Left-Cerebral-White-Matter", 
+                            "Right-Cerebral-White-Matter",
+                            "Left-Cerebral-Cortex",
+                            "Right-Cerebral-Cortex",
+                            "Left-choroid-plexus",
+                            "Right-choroid-plexus"
+                         ];
+        if (blank_names.indexOf(atlas_colors[label+1][0]) != -1)
+            continue;
+
 		const lower = cv.matFromArray(1, 1, cv.CV_16UC1, [
 			label
 		]);
@@ -168,18 +257,41 @@ function parseData2(image, canvas_slice_id, start, end, atlas_colors, accuracy) 
                 hole = true;
             }
 
+            // lets try to interpolate instead with 
+            var degree = 2;
+            //  let's the algorithms compute the number of knots
+            //var knots = [
+            //    0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+            //];
+            var points = Array.from(cnt.data).chunk(4).map(function(a) {
+        		return a[0];
+        	}).chunk(2);
+            // now repeat the first degree + 1 points to make this a closed curve
+            for (let j = 0; j < degree + 1; j++) {
+                points.push(points[j]);
+            }
+
+            var originalNumPoints = points.length - (degree + 1); // without the repeated points
+            var maxT = 1.0 - 1.0 / (originalNumPoints + 1);
+            var newPoints = [];
+            for(var t=0; t<1; t+=0.01) {
+                var point = interpolate(t * maxT, degree, points, null, null);
+                newPoints.push(point);
+            }
             // we can set the accuracy to 10% or the arc-length
             //accuracy = 0.01*cv.arcLength(cnt, true);
-            cv.approxPolyDP(cnt, tmp, accuracy, true);
+            //cv.approxPolyDP(cnt, tmp, accuracy, true);
             let moments = cv.moments(cnt, false);
             let centroid_x = moments.m10 / moments.m00;
             let centroid_y = moments.m01 / moments.m00;
             let area = cv.contourArea(cnt);
             let perimeter = cv.arcLength(cnt, true);
-        	var data = Array.from(tmp.data).chunk(4).map(function(a) {
-        		return a[0];
-        	}).chunk(2);
+        	//var data = Array.from(tmp.data).chunk(4).map(function(a) {
+        	//	return a[0];
+        	//}).chunk(2);
+            data = newPoints;
             contour_array[label].push(data);
+
             // We could do better here for the placement of labels.
             // Best would be to find the largest inscribing circle for the
             // polygon and to place the label at that location. This
