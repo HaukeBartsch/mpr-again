@@ -12,26 +12,32 @@
   <BODY>
   <div style="margin: 0px;">
   <div class="left">
-<!--    <div class="MPR">
-      <img id="mpr3" class="primary" src="data/T1Sagittal.jpg"/>
-      <img id="mpr3-overlay" class="overlay" src="data/T2Sagittal.jpg"/>
-      <div style="position: absolute; bottom: 0px; right: 5px; font-size: 9pt; color: yellow;" id="mpr3_message1"></div>
-      <div style="position: absolute; bottom: 20px; right: 5px; font-size: 9pt; color: yellow;" id="mpr3_message2"></div>
+    <div class="MPR">
+      <canvas id="mpr3" class="primary" src="data/T1Sagittal.jpg"></canvas>
+      <canvas id="mpr3_overlay" class="overlay" draggable="false" ondragstart="return false;"></canvas>
+      <canvas id="mpr3_atlas"  class="atlas" draggable="false" ondragstart="return false;"></canvas>
+      <div id="mpr3_atlas2" class="atlas2" draggable="false" ondragstart="return false;"></div>
+      <div class="message" style="bottom: 0px; right: 5px;"><span id="mpr3_message1"></span></div>
+      <div class="message" style="bottom: 20px; right: 5px;"><span id="mpr3_message2"></span></div>
+      <div class="message" style="bottom: 40px; right: 5px;"><span id="mpr3_message3"></span></div>
       <div class="crosshair-horizontal"></div>
       <div class="crosshair-vertical"></div>
     </div>
     <div class="MPR">
-      <img id="mpr2" class="primary" src="data/T1Coronal.jpg"/>
-      <img id="mpr2-overlay" class="overlay" src="data/T2Coronal.jpg"/>
-      <div style="position: absolute; bottom: 0px; right: 5px; font-size: 9pt; color: yellow;" id="mpr2_message1"></div>
-      <div style="position: absolute; bottom: 20px; right: 5px; font-size: 9pt; color: yellow;" id="mpr2_message2"></div>
+      <canvas id="mpr2" class="primary" src="data/T1Coronal.jpg"/>
+      <canvas id="mpr2_overlay" class="overlay" draggable="false" ondragstart="return false;"/>
+      <canvas id="mpr2_atlas" class="atlas" draggable="false" ondragstart="return false;"/>
+      <div id="mpr2_atlas2" class="atlas2" draggable="false" ondragstart="return false;"></div>
+      <div class="message" style="position: absolute; bottom: 0px; right: 5px; font-size: 9pt; color: yellow;" id="mpr2_message1"></div>
+      <div class="message" style="position: absolute; bottom: 20px; right: 5px; font-size: 9pt; color: yellow;" id="mpr2_message2"></div>
+      <div class="message" style="position: absolute; bottom: 40px; right: 5px; font-size: 9pt; color: yellow;" id="mpr2_message3"></div>
       <div class="crosshair-horizontal"></div>
       <div class="crosshair-vertical"></div>
-    </div> -->
+    </div>
   </div>
   <div class="right">
     <div class="MPRR">
-      <canvas id="mpr1" class="primary"/draggable="false" ondragstart="return false;"></canvas>
+      <canvas id="mpr1" class="primary" draggable="false" ondragstart="return false;"></canvas>
       <canvas id="mpr1_overlay" class="overlay" draggable="false" ondragstart="return false;"></canvas>
       <canvas id="mpr1_atlas" class="atlas" draggable="false" ondragstart="return false;"></canvas>
       <div id="mpr1_atlas2" class="atlas2" draggable="false" ondragstart="return false;"></div>

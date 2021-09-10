@@ -57,15 +57,34 @@ const ctx1 = jQuery('#mpr1')[0].getContext("2d");
 const ctx1_overlay = jQuery('#mpr1_overlay')[0].getContext("2d");
 const ctx1_atlas = jQuery('#mpr1_atlas')[0].getContext("2d");
 
+const ctx2 = jQuery('#mpr2')[0].getContext("2d");
+const ctx2_overlay = jQuery('#mpr2_overlay')[0].getContext("2d");
+const ctx2_atlas = jQuery('#mpr2_atlas')[0].getContext("2d");
+
+const ctx3 = jQuery('#mpr3')[0].getContext("2d");
+const ctx3_overlay = jQuery('#mpr3_overlay')[0].getContext("2d");
+const ctx3_atlas = jQuery('#mpr3_atlas')[0].getContext("2d");
+
 // AXIAL IMAGE
 // real height and width of cache mosaic (we want to keep only 200x200x260 as resolution not 256x256x256)
 var imageWidth = 3000; // 4096; // 11776; // 40 images // 17 images
 var imageHeight = 3900; // 4096; // 11776; // 41 images // 17 images
 
+var imageWidth2 = 3000; // 4096; // 11776; // 40 images // 17 images
+var imageHeight2 = 3900; // 4096; // 11776; // 41 images // 17 images
+
+var imageWidth3 = 3000; // 4096; // 11776; // 40 images // 17 images
+var imageHeight3 = 3900; // 4096; // 11776; // 41 images // 17 images
+
 //var dims = [512, 512, 512];
 var dims = [200, 200, 260];
 var numImagesX = Math.floor(imageWidth / dims[1]);
 var numImagesY = Math.floor(imageHeight / dims[2]);
+var numImagesX2 = Math.floor(imageWidth2 / dims[1]);
+var numImagesY2 = Math.floor(imageHeight2 / dims[2]);
+var numImagesX3 = Math.floor(imageWidth3 / dims[1]);
+var numImagesY3 = Math.floor(imageHeight3 / dims[2]);
+
 var position = [Math.floor(dims[0] / 2), Math.floor(dims[1] / 2), Math.floor(dims[2] / 2)];
 var Primary = new Image();
 var OverlayOrig = new Image(); // the original overlay before processing
@@ -361,11 +380,11 @@ function mouseEvents(e) {
         //mouse.lasty = e.pageY - bounds.top - scrollY;
         mouse.lasty = e.pageY;
         if (mpr === "#mpr1")
-        mouse.dragy = position[0];
+            mouse.dragy = position[0];
         else if (mpr === "#mpr2")
-        mouse.dragy = position[1];
+            mouse.dragy = position[1];
         else if (mpr === "#mpr3")
-        mouse.dragy = position[2];
+            mouse.dragy = position[2];
         
         e.preventDefault();
     } else if (e.type === "mousemove" && mouse.button) {
