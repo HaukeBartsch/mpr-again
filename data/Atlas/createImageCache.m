@@ -1,5 +1,5 @@
 
-cd('/Users/hauke/src/mpr-again/data/Atlas');
+cd('/Users/hauke/src/mpr-again2/data/Atlas');
 %%addpath('/Users/hauke/src/mpr-again/converter/niftimatlib-1.2/matlab');
 addpath('/usr/local/fsl/etc/matlab/');
 
@@ -92,7 +92,7 @@ imwrite(data2d8bit, strcat(name, 'Axial.jpg'), 'jpeg', 'Mode', 'lossy', 'BitDept
 
 
 % try to read in the vertex wise data from the folder
-f = '/Users/hauke/src/mpr-again/data/SSE_examples/SSE_results/voxelwise';
+f = '/Users/hauke/src/mpr-again2/data/SSE_examples/SSE_results/voxelwise';
 data = read_avw(strcat(f, '/SSE_results_voxelwise_ND_beta_hat.nii'));
 channel = 9; % up to 55 in there
 data = squeeze(data(:,:,:,channel));
@@ -106,6 +106,9 @@ data = upsample_volume(data); % new resolution is twice the old resolution
 
 %data2d = single(zeros(d2d));
 
+%
+% Save Axial overlay
+%
 numImages = ceil(sqrt(d(1)));
 d2d = [numImages * d(3), numImages * d(2)];
 data2d = single(zeros(d2d));
@@ -122,14 +125,65 @@ for i=1:d(1)
 end
 data2d8bit = uint8((double(data2d)-min(min(data2d)))/double(max(max(data2d))-min(min(data2d))) * (2^8-1));
 imwrite(data2d8bit, strcat(name, 'Axial.jpg'), 'jpeg', 'Mode', 'lossy', 'BitDepth', 8, 'Quality', 75);
-%data2d8bit = uint8(double(data2d)/double(max(max(data2d))) * (2^8-1));
-%data2d16bit = uint16(data2d);
-%imwrite(data2d16bit, strcat(name, 'Axial.png'), 'PNG', 'BitDepth', 16);
-%imwrite(data2d8bit, strcat(name, 'Axial.jpg'), 'jpeg', 'Mode', 'lossy', 'BitDepth', 8, 'Quality', 75);
 fileID = fopen(strcat(name, 'Axial_', num2str(channel, '%02d'), '_', num2str(d, "%d_"), 'single.dat'),'w');
 fwrite(fileID,data2d','single');
 fclose(fileID);
 
+%
+% Safe Coronal overlay
+%
+numImages = ceil(sqrt(d(3)));
+% we will have a single image with ceil(sqrt(512*512*512))
+d2d = [numImages * d(1), numImages * d(2)];
+data2d = single(zeros(d2d));
+
+% one problem is HDR - we got 16bit data but we only have 8 bit display
+% in a jpeg we have 8bit only
+h = 1; w = 1;
+for i=1:d(3)
+   im = squeeze(data(:,:,i));
+   %data2d(w:(w+d(1)-1), h:(h+d(2)-1)) = rot90(im,1);
+   data2d(w:(w+d(1)-1), h:(h+d(2)-1)) = im;
+   if (w+d(1)-1) >= d2d(1),
+      w = 1;
+      h = h + d(2);
+   else
+      w = w + d(1);
+   end
+end
+data2d8bit = uint8((double(data2d)-min(min(data2d)))/double(max(max(data2d))-min(min(data2d))) * (2^8-1));
+imwrite(data2d8bit, strcat(name, 'Coronal.jpg'), 'jpeg', 'Mode', 'lossy', 'BitDepth', 8, 'Quality', 75);
+fileID = fopen(strcat(name, 'Coronal_', num2str(channel, '%02d'), '_', num2str(d, "%d_"), 'single.dat'),'w');
+fwrite(fileID,data2d','single');
+fclose(fileID);
+
+%
+% Safe Sagittal overlay
+%
+numImages = ceil(sqrt(d(2)));
+d2d = [numImages * d(1), numImages * d(3)];
+data2d = single(zeros(d2d));
+h = 1; w = 1;
+for i=1:d(2)
+   im = squeeze(data(:,i,:));
+   %data2d(w:(w+d(1)-1), h:(h+d(2)-1)) = rot90(im,1);
+   data2d(w:(w+d(1)-1), h:(h+d(3)-1)) = im;
+   if (w+d(1)-1) >= d2d(1),
+       w = 1;
+       h = h + d(3);
+   else
+       w = w + d(1);
+   end
+end
+data2d8bit = uint8((double(data2d)-min(min(data2d)))/double(max(max(data2d))-min(min(data2d))) * (2^8-1));
+imwrite(data2d8bit, strcat(name, 'Sagittal.jpg'), 'jpeg', 'Mode', 'lossy', 'BitDepth', 8, 'Quality', 75);
+fileID = fopen(strcat(name, 'Sagittal_', num2str(channel, '%02d'), '_', num2str(d, "%d_"), 'single.dat'),'w');
+fwrite(fileID,data2d','single');
+fclose(fileID);
+       
+       
+       
+       
 %h = 1; w = 1;
 %for i=1:d(1)
 %   im = squeeze(data(i,:,:));

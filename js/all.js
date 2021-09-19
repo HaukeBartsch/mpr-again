@@ -1,91 +1,88 @@
-const mouse = { x: 0, y: 0, button: false, wheel: 0, lastX: 0, lastY: 0, drag: false, dragx: 0, dragy: 0 };
-
-// We can enable themes, ways to adjust the display for specific
-// purposes. Here is a print theme that provides larger line width.
-var themes = {
-	"normal": {
-		"primary": {
-			"show": true
-		},
-		"overlay": {
-			"show": true,
-            "colormap": { 
-                "max": 0.8,
-                "blank_out": 0,
-                "gamma": 0.5
-            }
-		},
-		"atlas": {
-			"show": true,
-			"label": true,
-			"colorByLabel": false,
-			"outlines": true,
-			"outline_width": 1,
-			"outline_color": "#fff",
-            "prob_threshold": 0.9,
-            "simplify_error": 0.01
-        }
-	}, // no change
-	"print": {
-		"primary": {
-			"show": false
-		},
-		"overlay": {
-			"show": true,
-            "colormap": { 
-                "max": 0.8,
-                "blank_out": 0,
-                "gamma":  0.5
-            }
-		},
-		"atlas": {
-			"show": true,
-			"label": false,
-			"outlines": true,
-			"outline_width": 5,
-			"outline_color": "#fff",
-			"colorByLabel": false,
-            "prob_threshold": 0.7,
-            "simplify_error": 0.01
-		}
-	}
-};
 // current theme is the normal theme
-var theme = themes.normal;
+var mouse = MPR_AGAIN.mouse;
+
+var dims = [200, 200, 260];
+var position = [Math.floor(dims[0] / 2), Math.floor(dims[1] / 2), Math.floor(dims[2] / 2)];
+
+var axial = MPR_AGAIN.themes["normal"];
+axial = Object.assign({}, axial, {
+			imageWidth: 3000,
+			imageHeight: 3900,
+			dims: [200, 200, 260],
+			viewIndex: [1, 2],
+			sliceDirection: -1,
+			underlay_path: "data/Atlas/T1AtlasAxial.jpg",
+			overlay_path: "data/Atlas/ND_beta_hatAxial_09_200_200_260_single.dat",
+			position: function() {
+				return position; // return the global position so we can use this in all MPRs
+			}
+});
+var axial_mpr = new MPR_AGAIN(axial, "#mpr-axial");
+
+var coronal = MPR_AGAIN.themes["normal"];
+coronal = Object.assign({}, coronal, {
+			imageWidth: 3400,
+			imageHeight: 3400, // switch dimensions, luckily they are the same
+			dims: [200, 200, 260],
+			viewIndex: [1, 0], // coronal slices through d(3)
+			sliceDirection: +1,
+			underlay_path: "data/Atlas/T1AtlasCoronal.jpg",
+			overlay_path: "data/Atlas/ND_beta_hatCoronal_09_200_200_260_single.dat",
+			position: function() {
+				return position; // return the global position so we can use this in all MPRs
+			}
+});
+var coronal_mpr = new MPR_AGAIN(coronal, "#mpr-coronal");
+
+var sagittal = MPR_AGAIN.themes["normal"];
+sagittal = Object.assign({}, sagittal, {
+			imageWidth: 3900, // if the viewIndex is [larger, smaller] we have to switch the dimensions here
+			imageHeight: 3000,
+			dims: [200, 200, 260],
+			viewIndex: [2, 0], // sagittal slices through d(2)
+			sliceDirection: +1,
+			underlay_path: "data/Atlas/T1AtlasSagittal.jpg",
+			overlay_path: "data/Atlas/ND_beta_hatSagittal_09_200_200_260_single.dat",
+			position: function() {
+				return position; // return the global position so we can use this in all MPRs
+			}
+});
+var sagittal_mpr = new MPR_AGAIN(sagittal, "#mpr-sagittal");
+
+
+var theme = MPR_AGAIN.themes["normal"];
 
 const ctx1 = jQuery('#mpr1')[0].getContext("2d");
 const ctx1_overlay = jQuery('#mpr1_overlay')[0].getContext("2d");
 const ctx1_atlas = jQuery('#mpr1_atlas')[0].getContext("2d");
 
-const ctx2 = jQuery('#mpr2')[0].getContext("2d");
-const ctx2_overlay = jQuery('#mpr2_overlay')[0].getContext("2d");
-const ctx2_atlas = jQuery('#mpr2_atlas')[0].getContext("2d");
+//const ctx2 = jQuery('#mpr2')[0].getContext("2d");
+//const ctx2_overlay = jQuery('#mpr2_overlay')[0].getContext("2d");
+//const ctx2_atlas = jQuery('#mpr2_atlas')[0].getContext("2d");
 
-const ctx3 = jQuery('#mpr3')[0].getContext("2d");
-const ctx3_overlay = jQuery('#mpr3_overlay')[0].getContext("2d");
-const ctx3_atlas = jQuery('#mpr3_atlas')[0].getContext("2d");
+//const ctx3 = jQuery('#mpr3')[0].getContext("2d");
+//const ctx3_overlay = jQuery('#mpr3_overlay')[0].getContext("2d");
+//const ctx3_atlas = jQuery('#mpr3_atlas')[0].getContext("2d");
 
 // AXIAL IMAGE
 // real height and width of cache mosaic (we want to keep only 200x200x260 as resolution not 256x256x256)
 var imageWidth = 3000; // 4096; // 11776; // 40 images // 17 images
 var imageHeight = 3900; // 4096; // 11776; // 41 images // 17 images
 
-var imageWidth2 = 3000; // 4096; // 11776; // 40 images // 17 images
-var imageHeight2 = 3900; // 4096; // 11776; // 41 images // 17 images
+//var imageWidth2 = 3000; // 4096; // 11776; // 40 images // 17 images
+//var imageHeight2 = 3900; // 4096; // 11776; // 41 images // 17 images
 
-var imageWidth3 = 3000; // 4096; // 11776; // 40 images // 17 images
-var imageHeight3 = 3900; // 4096; // 11776; // 41 images // 17 images
+//var imageWidth3 = 3000; // 4096; // 11776; // 40 images // 17 images
+//var imageHeight3 = 3900; // 4096; // 11776; // 41 images // 17 images
 
 //var dims = [512, 512, 512];
-var dims = [200, 200, 260];
 var numImagesX = Math.floor(imageWidth / dims[1]);
 var numImagesY = Math.floor(imageHeight / dims[2]);
-var numImagesX2 = Math.floor(imageWidth2 / dims[1]);
-var numImagesY2 = Math.floor(imageHeight2 / dims[2]);
-var numImagesX3 = Math.floor(imageWidth3 / dims[1]);
-var numImagesY3 = Math.floor(imageHeight3 / dims[2]);
+//var numImagesX2 = Math.floor(imageWidth2 / dims[1]);
+//var numImagesY2 = Math.floor(imageHeight2 / dims[2]);
+//var numImagesX3 = Math.floor(imageWidth3 / dims[1]);
+//var numImagesY3 = Math.floor(imageHeight3 / dims[2]);
 
-var position = [Math.floor(dims[0] / 2), Math.floor(dims[1] / 2), Math.floor(dims[2] / 2)];
 var Primary = new Image();
 var OverlayOrig = new Image(); // the original overlay before processing
 var Overlay = new Image();  // the overlay after processing
@@ -452,23 +449,34 @@ function resize() {
     requireNewDraw = true; // redraw even if the position did  not change
     requireNewDraw_overlay = true;
     requireNewDraw_atlas = true;
-    jQuery('.MPR').css('height', jQuery(window).height() / 2.0);
+    //jQuery('.MPR').css('height', jQuery(window).height() / 2.0);
     
     // set size of canvas once
-    var canvas = jQuery('#mpr1_overlay')[0];
-    canvas.width = jQuery('#mpr1_overlay').width();
-    canvas.height = jQuery('#mpr1_overlay').height();
-    
-    canvas = jQuery('#mpr1_atlas')[0];
-    canvas.width = jQuery('#mpr1_atlas').width();
-    canvas.height = jQuery('#mpr1_atlas').height();
-    
-    canvas = jQuery('#mpr1')[0];
-    canvas.width = jQuery('#mpr1').width();
-    canvas.height = jQuery('#mpr1').height();
-    var svg_atlas = jQuery('#mpr1_atlas2')[0];
-    svg_atlas.width = jQuery('#mpr1_atlas2').width();
-    svg_atlas.height = jQuery('#mpr1_atlas2').height();
+    var two2ds = ["mpr1", "mpr2", "mpr3"];
+    for (var i = 0; i < two2ds.length; i++) {
+    	var ov = "#" + two2ds[i] + "_overlay";
+    	var at = "#" + two2ds[i] + "_atlas";
+    	var pu = "#" + two2ds[i];
+    	if (jQuery(ov).length > 0) {
+    		var canvas = jQuery(ov)[0];
+    		canvas.width = jQuery(ov).width();
+    		canvas.height = jQuery(ov).height();
+    	}
+    	if (jQuery(at).length > 0) {
+    		canvas = jQuery(at)[0];
+    		canvas.width = jQuery(at).width();
+    		canvas.height = jQuery(at).height();
+    	}
+    	if (jQuery(pu).length > 0) {
+    		canvas = jQuery(pu)[0];
+    		canvas.width = jQuery(pu).width();
+    		canvas.height = jQuery(pu).height();
+    	}
+    	// Why do we need this?
+    	//var svg_atlas = jQuery('#mpr1_atlas2')[0];
+    	//svg_atlas.width = jQuery('#mpr1_atlas2').width();
+    	//svg_atlas.height = jQuery('#mpr1_atlas2').height();
+    }
 }
 
 function makeRequest (method, url) {
@@ -891,12 +899,13 @@ jQuery(document).ready(function () {
         context.putImageData(overlay_image_data, 0, 0);
         // from that context canvas we can create a new image that we can use with drawImage
         var url = canvas.toDataURL();
-        Overlay.src = url;
-        Overlay.onload = function () {
-            overlay_loaded = true;
-            console.log("processing of overlay cache for canvas is finished");
-        };
-        console.log("loading of overlay cache for canvas is finished");
+        this.Overlay.src = url;
+        this.Overlay.onload = (function(self) {
+        			return function() {
+        				self.overlay_loaded = true;
+        				console.log("processing of overlay cache for canvas is finished");
+        			};
+            })(this);
     });
 
     // don't use for raw data

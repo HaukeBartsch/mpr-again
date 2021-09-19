@@ -12,8 +12,8 @@
   <BODY>
   <div style="margin: 0px;">
   <div class="left">
-    <div class="MPR">
-      <canvas id="mpr3" class="primary" src="data/T1Sagittal.jpg"></canvas>
+    <div class="MPR" id="mpr-axial">
+    <!--  <canvas id="mpr3" class="primary" src="data/T1Sagittal.jpg"></canvas>
       <canvas id="mpr3_overlay" class="overlay" draggable="false" ondragstart="return false;"></canvas>
       <canvas id="mpr3_atlas"  class="atlas" draggable="false" ondragstart="return false;"></canvas>
       <div id="mpr3_atlas2" class="atlas2" draggable="false" ondragstart="return false;"></div>
@@ -21,10 +21,10 @@
       <div class="message" style="bottom: 20px; right: 5px;"><span id="mpr3_message2"></span></div>
       <div class="message" style="bottom: 40px; right: 5px;"><span id="mpr3_message3"></span></div>
       <div class="crosshair-horizontal"></div>
-      <div class="crosshair-vertical"></div>
+      <div class="crosshair-vertical"></div> -->
     </div>
-    <div class="MPR">
-      <canvas id="mpr2" class="primary" src="data/T1Coronal.jpg"/>
+    <div class="MPR" id="mpr-coronal">
+<!--       <canvas id="mpr2" class="primary" src="data/T1Coronal.jpg"/>
       <canvas id="mpr2_overlay" class="overlay" draggable="false" ondragstart="return false;"/>
       <canvas id="mpr2_atlas" class="atlas" draggable="false" ondragstart="return false;"/>
       <div id="mpr2_atlas2" class="atlas2" draggable="false" ondragstart="return false;"></div>
@@ -32,8 +32,9 @@
       <div class="message" style="position: absolute; bottom: 20px; right: 5px; font-size: 9pt; color: yellow;" id="mpr2_message2"></div>
       <div class="message" style="position: absolute; bottom: 40px; right: 5px; font-size: 9pt; color: yellow;" id="mpr2_message3"></div>
       <div class="crosshair-horizontal"></div>
-      <div class="crosshair-vertical"></div>
+      <div class="crosshair-vertical"></div> -->
     </div>
+    <div class="MPR" id="mpr-sagittal"></div>
   </div>
   <div class="right">
     <div class="MPRR">
@@ -60,6 +61,7 @@
     <script src="js/freesurfer_labels.js"></script>
     <script src="js/colormaps.js" type="text/javascript"></script>
   <!--   <script src="js/opencv.js" type="text/javascript"></script> -->    
-    <script src="js/all.js" type="text/javascript"></script>
+  <script src="js/mpr-again.js" type="text/javascript"></script>
+  <script src="js/all.js" type="text/javascript"></script>
   </BODY>
 </HTML>
