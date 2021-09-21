@@ -1,5 +1,16 @@
 // current theme is the normal theme
-var mouse = MPR_AGAIN.mouse;
+var mouse = { // not needed if we use mpr-again
+	x: 0,
+	y: 0,
+	button: false,
+	wheel: 0,
+	lastX: 0,
+	lastY: 0,
+	drag: false,
+	dragx: 0,
+	dragy: 0
+};
+
 
 var dims = [200, 200, 260];
 var position = [Math.floor(dims[0] / 2), Math.floor(dims[1] / 2), Math.floor(dims[2] / 2)];
@@ -12,7 +23,8 @@ axial = Object.assign({}, axial, {
 			viewIndex: [1, 2],
 			sliceDirection: -1,
 			underlay_path: "data/Atlas/T1AtlasAxial.jpg",
-			overlay_path: "data/Atlas/ND_beta_hatAxial_09_200_200_260_single.dat",
+            overlay_path: "data/Atlas/ND_beta_hatAxial_09_200_200_260_single.dat",
+            atlas_path: "data/Atlas/webASEG.json",
 			position: function() {
 				return position; // return the global position so we can use this in all MPRs
 			}
@@ -28,6 +40,7 @@ coronal = Object.assign({}, coronal, {
 			sliceDirection: +1,
 			underlay_path: "data/Atlas/T1AtlasCoronal.jpg",
 			overlay_path: "data/Atlas/ND_beta_hatCoronal_09_200_200_260_single.dat",
+            atlas_path: "data/Atlas/webASEG.json",
 			position: function() {
 				return position; // return the global position so we can use this in all MPRs
 			}
@@ -43,6 +56,7 @@ sagittal = Object.assign({}, sagittal, {
 			sliceDirection: +1,
 			underlay_path: "data/Atlas/T1AtlasSagittal.jpg",
 			overlay_path: "data/Atlas/ND_beta_hatSagittal_09_200_200_260_single.dat",
+            atlas_path: "data/Atlas/webASEG.json",
 			position: function() {
 				return position; // return the global position so we can use this in all MPRs
 			}
@@ -994,7 +1008,7 @@ jQuery(document).ready(function () {
             };
         }
     }; */
-    jQuery(document).on('keydown', function(e) {
+/*    jQuery(document).on('keydown', function(e) {
         if (e.which == 49) {
             theme.atlas.useColorByLabel = !theme.atlas.useColorByLabel;
         }
@@ -1048,5 +1062,5 @@ jQuery(document).ready(function () {
         	}
         	setTimeout(tim, 1);
         }
-    }); 
+    });*/
 });
