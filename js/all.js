@@ -25,6 +25,7 @@ axial = Object.assign({}, axial, {
 			underlay_path: "data/Atlas/T1AtlasAxial.jpg",
             overlay_path: "data/Atlas/ND_beta_hatAxial_09_200_200_260_single.dat",
             atlas_path: "data/Atlas/webASEG.json",
+            atlas_placeholder: "data/AtlasAxial.png",
 			position: function() {
 				return position; // return the global position so we can use this in all MPRs
 			}
@@ -32,6 +33,7 @@ axial = Object.assign({}, axial, {
 var axial_mpr = new MPR_AGAIN(axial, "#mpr-axial");
 
 var coronal = MPR_AGAIN.themes["normal"];
+coronal.atlas.show = false;
 coronal = Object.assign({}, coronal, {
 			imageWidth: 3400,
 			imageHeight: 3400, // switch dimensions, luckily they are the same
@@ -41,6 +43,7 @@ coronal = Object.assign({}, coronal, {
 			underlay_path: "data/Atlas/T1AtlasCoronal.jpg",
 			overlay_path: "data/Atlas/ND_beta_hatCoronal_09_200_200_260_single.dat",
             atlas_path: "data/Atlas/webASEG.json",
+            atlas_placeholder: "data/AtlasCoronal.png",
 			position: function() {
 				return position; // return the global position so we can use this in all MPRs
 			}
@@ -48,6 +51,7 @@ coronal = Object.assign({}, coronal, {
 var coronal_mpr = new MPR_AGAIN(coronal, "#mpr-coronal");
 
 var sagittal = MPR_AGAIN.themes["normal"];
+sagittal.atlas.show = false;
 sagittal = Object.assign({}, sagittal, {
 			imageWidth: 3900, // if the viewIndex is [larger, smaller] we have to switch the dimensions here
 			imageHeight: 3000,
@@ -57,6 +61,7 @@ sagittal = Object.assign({}, sagittal, {
 			underlay_path: "data/Atlas/T1AtlasSagittal.jpg",
 			overlay_path: "data/Atlas/ND_beta_hatSagittal_09_200_200_260_single.dat",
             atlas_path: "data/Atlas/webASEG.json",
+            atlas_placeholder: "data/AtlasSagittal.png",
 			position: function() {
 				return position; // return the global position so we can use this in all MPRs
 			}
