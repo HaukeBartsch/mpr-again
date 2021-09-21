@@ -537,9 +537,11 @@ class MPR_AGAIN {
 
 
 		// we need to adjust the width and height values in the canvas to make the aspect ratio work
-		jQuery(window).resize(function() {
-			this.resize();
-		});
+        jQuery(window).resize(function(self) {
+        	return function() {
+        		self.resize();
+        	};
+        }(this));
 		this.resize();
 
 		jQuery(this.primary).on('DOMMouseScroll mousewheel', function(self) {
