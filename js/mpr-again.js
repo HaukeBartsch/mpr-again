@@ -77,7 +77,7 @@ class MPR_AGAIN {
     viewIndex = [1, 2]; // for axial index into dimensions
     numImagesX; //  = Math.floor(imageWidth / dims[1]);
     numImagesY; //  = Math.floor(imageHeight / dims[2]);
-    sliceDirection = [+1, +1]; // the direction we slice from (flip if -1)
+    sliceDirection = [+1, -1]; // the direction we slice from (flip if -1)
     // has to be set by the calling function
     position = function() {
         return [0, 0, 0];
@@ -185,9 +185,20 @@ class MPR_AGAIN {
         	}
 
         	var crosshair_horz = jQuery(this.primary).parent().find('.crosshair-horizontal');
-        	jQuery(crosshair_horz).css('top', (offset[1] + (perc[this.viewIndex[1]] * scale[1] * height)) + "px");
+            jQuery(crosshair_horz).css('top', (offset[1] + (perc[this.viewIndex[1]] * scale[1] * height)) + "px");
+            jQuery(crosshair_horz).css('left', (offset[0] + (perc[this.viewIndex[0]] * scale[0] * width)) + "px");
+
         	var crosshair_vert = jQuery(this.primary).parent().find('.crosshair-vertical');
-        	jQuery(crosshair_vert).css('left', (offset[0] + (perc[this.viewIndex[0]] * scale[0] * width)) + "px");
+            jQuery(crosshair_vert).css('left', (offset[0] + (perc[this.viewIndex[0]] * scale[0] * width)) + "px");
+            jQuery(crosshair_vert).css('top', (offset[1] + (perc[this.viewIndex[1]] * scale[1] * height)) + "px");
+
+            // position the center circle
+            //var center_circle = this.svg_circ; // jQuery(this.primary).parent().find('.center-circle');
+            var radius = jQuery(this.primary).parent().find('circle').attr('r');
+            jQuery(this.primary).parent().find('svg').css('top', ((offset[1] + (perc[this.viewIndex[1]] * scale[1] * height)) - (50 / 2.0)) + "px");
+            jQuery(this.primary).parent().find('svg').css('left', ((offset[0] + (perc[this.viewIndex[0]] * scale[0] * width)) - (50 / 2.0)) + "px");
+            //jQuery(this.svg_circ).css('cx', (offset[1] + (perc[this.viewIndex[1]] * scale[1] * height)));
+            //jQuery(this.svg_circ).css('cy', (offset[0] + (perc[this.viewIndex[0]] * scale[0] * width)));
 
         	//console.log("Did draw now update last_position");
         	this.last_position = [position[0], position[1], position[2]];
@@ -274,9 +285,10 @@ class MPR_AGAIN {
         	if (typeof this.last_position_overlay == 'undefined' || (this.last_position_overlay[0] != position[0] || this.last_position_overlay[1] != position[1] || this.last_position_overlay[2] != position[2])) {
         		this.requireNewDraw_overlay = true;
         	}
-        	if (this.requireNewDraw_overlay) {
-        		startTime = (new Date()).getTime();
-
+            if (this.requireNewDraw_overlay) {
+                if (typeof(startTime) != 'undefined') {
+                    startTime = (new Date()).getTime();
+                }
         		this.requireNewDraw_overlay = false;
         		var idxy = Math.floor(position[sliceDim] / this.numImagesX);
         		var idxx = position[sliceDim] - (idxy * this.numImagesX);
@@ -324,7 +336,9 @@ class MPR_AGAIN {
         			orient = "coronal";
         		}
 
-        		jQuery(this.message2).text("Overlay " + orient + " slice: " + pos + " [" + ((new Date()).getTime() - startTime) + "ms]");
+                if (typeof(startTime) != 'undefined') {
+                    jQuery(this.message2).text("Overlay " + orient + " slice: " + pos + " [" + ((new Date()).getTime() - startTime) + "ms]");
+                    }
         		}
         		}
         		last_position_atlas; // cache this to make animation requests faster
@@ -807,29 +821,24 @@ class MPR_AGAIN {
                 	jQuery(message3_div).css('right', '5px');
                 	this.message3 = document.createElement('span');
                 	jQuery(message3_div).append(this.message3);
-                	jQuery(this.id).append(message3_div);
-
-                	//<div class="crosshair-horizontal"></div>
+                    jQuery(this.id).append(message3_div);
                 	this.crosshair_horizontal = document.createElement('div');
                 	jQuery(this.crosshair_horizontal).addClass('crosshair-horizontal');
-                	jQuery(this.id).append(this.crosshair_horizontal);
+                    jQuery(this.id).append(this.crosshair_horizontal);
+
+                    jQuery(this.crosshair_horizontal).append("<div style='right: -10px; width: 100%; border-bottom: 1px solid yellow; position: absolute;'></div>");
+                    jQuery(this.crosshair_horizontal).append("<div style='left: -1000px; width: 990px; border-bottom: 1px solid yellow; position: absolute;'></div>");
 
                 	//<div class="crosshair-vertical"></div>
                 	this.crosshair_vertical = document.createElement('div');
                 	jQuery(this.crosshair_vertical).addClass('crosshair-vertical');
                     jQuery(this.id).append(this.crosshair_vertical);
 
-                    //var ch_v_p1 = document.createElement('div');
-                    //jQuery(ch_v_p1).addClass('ch-v-p1');
-                    //jQuery(this.crosshair_vertical).append(ch_v_p1);
-                    //var ch_v_p0 = document.createElement('div');
-                    //jQuery(ch_v_p0).addClass('ch-v-p0');
-                    //jQuery(this.crosshair_vertical).append(ch_v_p0);
-                    //var ch_v_p2 = document.createElement('div');
-                    //jQuery(ch_v_p2).addClass('ch-v-p2');
-                    //jQuery(this.crosshair_vertical).append(ch_v_p2);
+                    jQuery(this.crosshair_vertical).append("<div style='top: -1000px; height: 990px; border-left: 1px solid yellow; position: absolute;'></div>");
+                    jQuery(this.crosshair_vertical).append("<div style='bottom: -10px; height: 100%; border-left: 1px solid yellow; position: absolute;'></div>");
 
-                	this.ctx1 = this.primary.getContext("2d");
+
+                    this.ctx1 = this.primary.getContext("2d");
                 	this.ctx1_overlay = this.overlay.getContext("2d");
                 	this.ctx1_atlas = this.atlas.getContext("2d");
                 	}
