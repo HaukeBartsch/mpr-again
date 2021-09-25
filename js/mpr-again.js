@@ -77,7 +77,7 @@ class MPR_AGAIN {
     viewIndex = [1, 2]; // for axial index into dimensions
     numImagesX; //  = Math.floor(imageWidth / dims[1]);
     numImagesY; //  = Math.floor(imageHeight / dims[2]);
-    sliceDirection = +1; // the direction we slice from (flip if -1)
+    sliceDirection = [+1, +1]; // the direction we slice from (flip if -1)
     // has to be set by the calling function
     position = function() {
         return [0, 0, 0];
@@ -177,10 +177,11 @@ class MPR_AGAIN {
         		((position[1] / (this.dims[1] - 1))),
         		((position[2] / (this.dims[2] - 1)))
         	];
-        	if (this.sliceDirection == -1) {
-        		perc[0] = 1 - perc[0];
-        		perc[1] = 1 - perc[1];
-        		perc[2] = 1 - perc[2];
+            if (this.sliceDirection[0] == -1) {
+            	perc[this.viewIndex[0]] = 1 - perc[this.viewIndex[0]];
+            }
+            if (this.sliceDirection[1] == -1) {
+            	perc[this.viewIndex[1]] = 1 - perc[this.viewIndex[1]];
         	}
 
         	var crosshair_horz = jQuery(this.primary).parent().find('.crosshair-horizontal');
@@ -203,7 +204,59 @@ class MPR_AGAIN {
         	jQuery(this.message1).text(orient + " slice: " + pos + " [" + ((new Date()).getTime() - startTime) + "ms]");
         	jQuery(this.message3).text(position.join(", "));
             }
-        }
+    }
+    // the obj should be a div
+    // x and y are 2d pixel positions
+    getPosition(obj, x, y) {
+    	//var offset = jQuery(obj).offset();
+    	var scale = [1.0, 1.0]; // one scale to rule them both
+    	var offset = [0, 0];
+    	if (obj.width > obj.height) { // whatever the larger dimension
+    		scale[1] = 1.0 / (obj.height / obj.width);
+    		// we need an offset to center the smaller dimension
+    		offset[1] = (obj.height - (scale[1] * obj.height)) / 2;
+    	} else {
+    		scale[0] = 1.0 / (obj.width / obj.height); // height will be 100%
+    		offset[0] = (obj.width - (scale[0] * obj.width)) / 2;
+    	}
+    	var pos = [
+    		((x - offset[0]) / scale[0]),
+    		((y - offset[1]) / scale[1])
+    	];
+    	// pos is now the corrected position based on the offset and scale
+    	// of the slice on the canvas (centered canvas image)
+    	// we need to compute the 3D position next
+    	var w = jQuery(obj).width();
+    	var h = jQuery(obj).height();
+
+    	// this should correspond to the slice location at that location
+    	var pos2 = [pos[0] / (w), pos[1] / (h)];
+    	if (this.sliceDirection[0] == -1) {
+    		pos2[0] = 1 - pos2[0];
+    	}
+    	if (this.sliceDirection[1] == -1) {
+    		pos2[1] = 1 - pos2[1];
+    	}
+    	//console.log(pos2);
+
+    	var sliceDim = 0;
+    	if (0 != this.viewIndex[0] && 0 != this.viewIndex[1]) {
+    		sliceDim = 0;
+    	}
+    	if (1 != this.viewIndex[0] && 1 != this.viewIndex[1]) {
+    		sliceDim = 1;
+    	}
+    	if (2 != this.viewIndex[0] && 2 != this.viewIndex[1]) {
+    		sliceDim = 2;
+    	}
+    	var pos3d = [0, 0, 0];
+    	pos3d[sliceDim] = position[sliceDim]; // unchanged
+    	pos3d[this.viewIndex[0]] = Math.round(pos2[0] * (this.dims[this.viewIndex[0]] - 1));
+    	pos3d[this.viewIndex[1]] = Math.round(pos2[1] * (this.dims[this.viewIndex[1]] - 1));
+    	//console.log(pos3d);
+
+    	return pos3d;
+    }
 
         updateMPROverlay() {
         		position = this.position();
@@ -764,7 +817,17 @@ class MPR_AGAIN {
                 	//<div class="crosshair-vertical"></div>
                 	this.crosshair_vertical = document.createElement('div');
                 	jQuery(this.crosshair_vertical).addClass('crosshair-vertical');
-                	jQuery(this.id).append(this.crosshair_vertical);
+                    jQuery(this.id).append(this.crosshair_vertical);
+
+                    //var ch_v_p1 = document.createElement('div');
+                    //jQuery(ch_v_p1).addClass('ch-v-p1');
+                    //jQuery(this.crosshair_vertical).append(ch_v_p1);
+                    //var ch_v_p0 = document.createElement('div');
+                    //jQuery(ch_v_p0).addClass('ch-v-p0');
+                    //jQuery(this.crosshair_vertical).append(ch_v_p0);
+                    //var ch_v_p2 = document.createElement('div');
+                    //jQuery(ch_v_p2).addClass('ch-v-p2');
+                    //jQuery(this.crosshair_vertical).append(ch_v_p2);
 
                 	this.ctx1 = this.primary.getContext("2d");
                 	this.ctx1_overlay = this.overlay.getContext("2d");
@@ -1066,6 +1129,37 @@ class MPR_AGAIN {
                 		}
                 	};
                 }(this));
+                    // allow users to adjust the position based on the cross-hair (grab and move)
+                    jQuery(this.primary).on('click', function(self) {
+                    	return function(e) {
+                    		var offset = jQuery(this).offset(); // from the click event
+                    		var x = e.pageX - offset.left;
+                    		var y = e.pageY - offset.top;
+                    		// ok, we need a function that for a canvas returns the position based
+                    		// on a 2D click point, 'this' in this case is the clicked object
+                    		var px = self.getPosition(this, x, y);
+                    		//console.log("px is: %d %d %d", px[0], px[1], px[2]);
+                    		position[0] = px[0];
+                    		position[1] = px[1];
+                    		position[2] = px[2];
+                    		/*                    		position = self.position();
+                    		                    		var sliceDim = 0;
+                    		                    		if (0 != self.viewIndex[0] && 0 != self.viewIndex[1]) {
+                    		                    			sliceDim = 0;
+                    		                    		}
+                    		                    		if (1 != self.viewIndex[0] && 1 != self.viewIndex[1]) {
+                    		                    			sliceDim = 1;
+                    		                    		}
+                    		                    		if (2 != self.viewIndex[0] && 2 != self.viewIndex[1]) {
+                    		                    			sliceDim = 2;
+                    		                    		}
+                    		                    		position[sliceDim] = Math.floor(y / self.Primary.height * self.dims[sliceDim]);
+                    		                    		if (position[sliceDim] >= self.dims[sliceDim])
+                    		                    			position[sliceDim] = 0;
+                    		                    		if (position[sliceDim] < 0)
+                    		                    			position[sliceDim] = self.dims[sliceDim] - 1; */
+                    	};
+                    }(this));
                 ["mousedown", "mouseup", "mousemove"].forEach(function(self) {
                 	return function(name) {
                 		if (typeof self.primary != 'undefined')

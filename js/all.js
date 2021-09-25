@@ -21,7 +21,7 @@ axial = Object.assign({}, axial, {
 			imageHeight: 3900,
 			dims: [200, 200, 260],
 			viewIndex: [1, 2],
-			sliceDirection: -1,
+			sliceDirection: [1, -1],
 			underlay_path: "data/Atlas/T1AtlasAxial.jpg",
             overlay_path: "data/Atlas/ND_beta_hatAxial_09_200_200_260_single.dat",
             atlas_path: "data/Atlas/webASEG.json",
@@ -39,7 +39,7 @@ coronal = Object.assign({}, coronal, {
 			imageHeight: 3400, // switch dimensions, luckily they are the same
 			dims: [200, 200, 260],
 			viewIndex: [1, 0], // coronal slices through d(3)
-			sliceDirection: +1,
+			sliceDirection: [+1, +1],
 			underlay_path: "data/Atlas/T1AtlasCoronal.jpg",
 			overlay_path: "data/Atlas/ND_beta_hatCoronal_09_200_200_260_single.dat",
             atlas_path: "data/Atlas/webASEG.json",
@@ -57,7 +57,7 @@ sagittal = Object.assign({}, sagittal, {
 			imageHeight: 3000,
 			dims: [200, 200, 260],
 			viewIndex: [2, 0], // sagittal slices through d(2)
-			sliceDirection: +1,
+			sliceDirection: [+1, +1],
 			underlay_path: "data/Atlas/T1AtlasSagittal.jpg",
 			overlay_path: "data/Atlas/ND_beta_hatSagittal_09_200_200_260_single.dat",
             atlas_path: "data/Atlas/webASEG.json",
