@@ -119,6 +119,43 @@ class MPR_AGAIN {
             }(this));
     }
 
+    // getValueAtPosition returns the value of a mosaic at a given 3d position in pixel
+    // data is a view to the Float32Array mosaic 2d image
+    getValueAtPosition(pos, data) {
+    	// we have different codings for different orientations here
+    	var sliceDim = 0;
+    	if (0 != this.viewIndex[0] && 0 != this.viewIndex[1]) {
+    		sliceDim = 0;
+    	}
+    	if (1 != this.viewIndex[0] && 1 != this.viewIndex[1]) {
+    		sliceDim = 1;
+    	}
+    	if (2 != this.viewIndex[0] && 2 != this.viewIndex[1]) {
+    		sliceDim = 2;
+    	}
+    	// which of the mosaic tiles are we in for the given pos?
+    	var idxy = Math.floor(pos[sliceDim] / this.numImagesX);
+    	var idxx = pos[sliceDim] - (idxy * this.numImagesX);
+
+    	// what is the start position of that tile?
+    	var startIdx = idxy * this.dims[this.viewIndex[0]];
+    	var startIdy = idxx * this.dims[this.viewIndex[1]];
+    	// this of this tile is : this.dims[this.viewIndex[0]], this.dims[this.viewIndex[1]]
+    	var pos2d = [startIdx + pos[this.viewIndex[0]], startIdy + pos[this.viewIndex[1]]];
+    	if (this.sliceDirection[0] < 0) {
+    		// we need to flip the image in this dimension
+    		pos2d[0] = startIdx + (this.dims[this.viewIndex[0]] - 1) - pos[this.viewIndex[0]];
+    	}
+    	if (this.sliceDirection[1] < 0) {
+    		// we need to flip the image in this dimension
+    		pos2d[1] = startIdy + (this.dims[this.viewIndex[1]] - 1) - pos[this.viewIndex[1]];
+    	}
+
+    	//  index is now in the 2d mosaic
+    	let index = pos2d[1] * this.imageWidth + pos2d[0];
+    	return data[index];
+    }
+
     last_position; // cache this to make animation requests faster
     last_position_overlay; // cache this to make animation requests faster
     requireNewDraw = false;
@@ -220,8 +257,9 @@ class MPR_AGAIN {
         	jQuery(this.message3).text(position.join(", "));
             }
     }
-    // the obj should be a div
-    // x and y are 2d pixel positions
+    // getPosition computes the 3d position of a mouse point.
+    // The obj should be a div, x and y are 2d pixel positions.
+    // The function returns the 3d position in pixel in the volume (position)
     getPosition(obj, x, y) {
     	//var offset = jQuery(obj).offset();
     	var scale = [1.0, 1.0]; // one scale to rule them both
@@ -341,7 +379,9 @@ class MPR_AGAIN {
         		}
 
                 if (typeof(startTime) != 'undefined') {
-                    jQuery(this.message2).text("Overlay " + orient + " slice: " + pos + " [" + ((new Date()).getTime() - startTime) + "ms]");
+                	var value = this.getValueAtPosition(position, this.OverlayRawData);
+
+                	jQuery(this.message2).text("Overlay " + value.toFixed(4) + " slice: " + pos + " [" + ((new Date()).getTime() - startTime) + "ms]");
                     }
         		}
         		}
