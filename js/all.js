@@ -15,7 +15,8 @@ var mouse = { // not needed if we use mpr-again
 var dims = [200, 200, 260];
 var position = [Math.floor(dims[0] / 2), Math.floor(dims[1] / 2), Math.floor(dims[2] / 2)];
 
-var axial = MPR_AGAIN.themes["normal"];
+var axial = MPR_AGAIN.getTheme("normal");
+axial.atlas.show = true;
 axial = Object.assign({}, axial, {
 			imageWidth: 3000,
 			imageHeight: 3900,
@@ -32,7 +33,7 @@ axial = Object.assign({}, axial, {
 });
 var axial_mpr = new MPR_AGAIN(axial, "#mpr-axial");
 
-var coronal = MPR_AGAIN.themes["normal"];
+var coronal = MPR_AGAIN.getTheme("normal");
 coronal.atlas.show = false;
 coronal = Object.assign({}, coronal, {
 			imageWidth: 3400,
@@ -50,7 +51,7 @@ coronal = Object.assign({}, coronal, {
 });
 var coronal_mpr = new MPR_AGAIN(coronal, "#mpr-coronal");
 
-var sagittal = MPR_AGAIN.themes["normal"];
+var sagittal = MPR_AGAIN.getTheme("normal");
 sagittal.atlas.show = false;
 sagittal = Object.assign({}, sagittal, {
 			imageWidth: 3900, // if the viewIndex is [larger, smaller] we have to switch the dimensions here

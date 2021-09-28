@@ -61,7 +61,11 @@ class MPR_AGAIN {
         	}
         }
     };
-    theme = MPR_AGAIN.themes["normal"];
+    // getTheme returns a deep copy of a specific theme
+    static getTheme(which) {
+    	return jQuery.extend(true, {}, MPR_AGAIN.themes[which]);
+    }
+    theme = MPR_AGAIN.getTheme("normal");
 
     //ctx1 = jQuery('#mpr1')[0].getContext("2d");
     //ctx1_overlay = jQuery('#mpr1_overlay')[0].getContext("2d");
@@ -1147,26 +1151,11 @@ class MPR_AGAIN {
                     		// ok, we need a function that for a canvas returns the position based
                     		// on a 2D click point, 'this' in this case is the clicked object
                     		var px = self.getPosition(this, x, y);
-                    		//console.log("px is: %d %d %d", px[0], px[1], px[2]);
                     		position[0] = px[0];
                     		position[1] = px[1];
                     		position[2] = px[2];
-                    		/*                    		position = self.position();
-                    		                    		var sliceDim = 0;
-                    		                    		if (0 != self.viewIndex[0] && 0 != self.viewIndex[1]) {
-                    		                    			sliceDim = 0;
-                    		                    		}
-                    		                    		if (1 != self.viewIndex[0] && 1 != self.viewIndex[1]) {
-                    		                    			sliceDim = 1;
-                    		                    		}
-                    		                    		if (2 != self.viewIndex[0] && 2 != self.viewIndex[1]) {
-                    		                    			sliceDim = 2;
-                    		                    		}
-                    		                    		position[sliceDim] = Math.floor(y / self.Primary.height * self.dims[sliceDim]);
-                    		                    		if (position[sliceDim] >= self.dims[sliceDim])
-                    		                    			position[sliceDim] = 0;
-                    		                    		if (position[sliceDim] < 0)
-                    		                    			position[sliceDim] = self.dims[sliceDim] - 1; */
+                            // we should use the 3D location to report the overlay intensity value and put it into the viewer
+                            // even better if we have a full statistics widget
                     	};
                     }(this));
                 ["mousedown", "mouseup", "mousemove"].forEach(function(self) {
